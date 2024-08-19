@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "climattr"
+version = "0.1.0"
+description = "Package with a toolbox for extreme event climate attribution"
+authors = [
+  "Rafael Abreu <rafael.cesario.abreu@gmail.com>",
+]
+
+repository = "https://github.com/rafaelcabreu/climattr"
+documentation = "https://github.com/rafaelcabreu/climattr"
+readme = "README.md"
+packages = [
+  {include = "climattr"}
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+cartopy = "^0.23.0"
+geopandas = "^1.0.1"
+matplotlib = "^3.9.2"
+netcdf4 = "^1.7.1.post2"
+numpy = "^2.1.0"
+pandas = "^2.2.2"
+rasterio = "^1.3.10"
+rioxarray = "^0.17.0"
+xarray = "^2024.7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+preview = true
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+files = ["climattr"]
+check_untyped_defs = "True"
+ignore_errors = "False"
+ignore_missing_imports = "True"
+strict_optional = "True"
+warn_unused_ignores = "True"
+warn_redundant_casts = "True"
+warn_unused_configs = "True"
+
+[tool.coverage.report]
+skip_empty = true
+
+[tool.coverage.run]
+branch = true
+source = ["climattr"]
