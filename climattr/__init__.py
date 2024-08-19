@@ -6,8 +6,7 @@ from climattr.attribution import (
 from climattr.main import ClimAttr
 from climattr.spatial import (
     _mask_area,
-    filter_area,
-    plot_area
+    filter_area
 )
 
 # attribution methods
@@ -18,4 +17,3 @@ ClimAttr.rp_plot = rp_plot
 # spatial methods
 ClimAttr._mask_area = _mask_area
 ClimAttr.filter_area = filter_area
-ClimAttr.plot_area = plot_area

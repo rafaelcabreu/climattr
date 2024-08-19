@@ -96,3 +96,20 @@ def find_nearest(value, data):
     return idx
 
 ###############################################################################
+
+def get_xy_coords(dataset):
+
+    latitudes = ['lat', 'latitude', 'y']
+    longitudes = ['lon', 'longitude', 'x']
+
+    for coord in dataset.coords.items():
+        
+        if coord[0] in latitudes:
+            y = coord[0]
+
+        if coord[0] in longitudes:
+            x = coord[0]
+
+    return x, y
+
+###############################################################################

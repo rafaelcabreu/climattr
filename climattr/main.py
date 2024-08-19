@@ -4,26 +4,19 @@ import xarray as xr
 
 from glob import glob
 
-class ClimAttr(xr.Dataset):
+from climattr.utils import get_xy_coords
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+@xr.register_dataset_accessor("eea")
+class ClimAttr:
 
+    def __init__(self, dataset, *args, **kwargs):
         # initialize custom attributes
+        self.dataset = dataset
         self.spatial_sel = None
         self.box = None
         self.mask = None
 
-        latitudes = ['lat', 'latitude', 'y']
-        longitudes = ['lon', 'longitude', 'x']
-
-        for coord in self.coords.items():
-            
-            if coord[0] in latitudes:
-                self.y = coord[0]
-
-            if coord[0] in longitudes:
-                self.x = coord[0]
+        self.x, self.y = get_xy_coords(self.dataset)
 
     #####################################################################
                 
@@ -55,40 +48,4 @@ class ClimAttr(xr.Dataset):
             )
         return cls(xr.concat(ds_list, dim='ensemble'))
 
-    #####################################################################
-
-    def _copy_attrs_to_new_instance(self, new_instance):
-        """Copy custom attributes to the new instance."""
-        new_instance.spatial_sel = self.spatial_sel
-        new_instance.box = self.box
-        new_instance.mask = self.mask
-        new_instance.x = self.x
-        new_instance.y = self.y
-        
-        return new_instance
-
-    #####################################################################
-
-    def mean(self, dim=None, keep_attrs=True):
-        mean_data = super(self.__class__, self).mean(dim=dim, keep_attrs=keep_attrs)
-        # Create a new instance of ClimAttrSpatial and copy attributes
-        new_instance = self.__class__(mean_data)
-        return self._copy_attrs_to_new_instance(new_instance)
-    
-    #####################################################################
-
-    def max(self, dim=None, keep_attrs=True):
-        max_data = super(self.__class__, self).max(dim=dim, keep_attrs=keep_attrs)
-        # Create a new instance of ClimAttrSpatial and copy attributes
-        new_instance = self.__class__(max_data)
-        return self._copy_attrs_to_new_instance(new_instance)
-    
-    #####################################################################
-
-    def min(self, dim=None, keep_attrs=True):
-        min_data = super(self.__class__, self).min(dim=dim, keep_attrs=keep_attrs)
-        # Create a new instance of ClimAttrSpatial and copy attributes
-        new_instance = self.__class__(min_data)
-        return self._copy_attrs_to_new_instance(new_instance)
-    
     #####################################################################
