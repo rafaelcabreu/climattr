@@ -8,6 +8,67 @@ from climattr.validator import (
     validate_direction
 )
 
+def _calc_bootstrap_ensemble(
+    data: np.ndarray, 
+    direction: str = "ascending", 
+    boot_size: int = 1000) -> np.ndarray:
+    """
+    Generates bootstrap ensembles from the input data and sorts them in the specified direction.
+    
+    This function creates multiple bootstrap samples from the input data, sorts each sample, 
+    and optionally reverses the order of the sorted samples based on the specified direction.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        An array of shape (n_samples,) containing the input data from which bootstrap samples 
+        will be drawn.
+        
+    direction : str, optional
+        The direction in which to sort the bootstrap samples. Can be either "ascending" (default) 
+        or "descending".
+        
+    boot_size : int, optional
+        The number of bootstrap samples to generate. Default is 1000.
+    
+    Returns
+    -------
+    numpy.ndarray
+        A 2D array of shape (boot_size, n_samples) where each row is a sorted bootstrap sample 
+        drawn from the input data. The samples are sorted in the specified direction.
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> data = np.array([3.2, 1.5, 4.7, 2.8])
+    >>> result = _calc_bootstrap_ensemble(data, direction="ascending", boot_size=3)
+    >>> result
+    array([[1.5, 2.8, 3.2, 4.7],
+           [1.5, 2.8, 3.2, 4.7],
+           [1.5, 3.2, 3.2, 4.7]])
+
+    >>> result = _calc_bootstrap_ensemble(data, direction="descending", boot_size=2)
+    >>> result
+    array([[4.7, 3.2, 3.2, 1.5],
+           [4.7, 3.2, 2.8, 1.5]])
+
+    """
+    # Flatten the input data
+    n_samples = data.shape[0]
+    
+    # Generate the bootstrap samples using np.random.choice
+    sample_store = np.random.choice(data, (int(boot_size), n_samples), replace=True)
+    
+    # Sort each row in the sample_store
+    sample_store.sort(axis=1)
+    
+    # Reverse the rows if direction is "descending"
+    if direction == "descending":
+        sample_store = sample_store[:, ::-1]
+    
+    return sample_store
+
+###############################################################################
 
 def _calc_return_time_confidence(
     data, 
@@ -15,23 +76,14 @@ def _calc_return_time_confidence(
     bootstrap_ci=95, 
     boot_size=100):
 
-    n_samples = data.shape[0]
-    boot_size = int(boot_size)
-
     ci_inf = (100 - bootstrap_ci) / 2
     ci_sup = 100 - (100 - bootstrap_ci) / 2
 
-    # Use np.random.choice to perform the resampling in a vectorized way
-    # to select the n boot_size samples of the bootstrap algorithm
-    sample_store = np.random.choice(data, (boot_size, n_samples), replace=True)
-
-    # Sort the resampled data along each row
-    sample_store.sort(axis=1)
-
-    # Reverse the data if direction is descending
-    if direction == "descending":
-        sample_store = sample_store[:, ::-1]
-
+    sample_store = _calc_bootstrap_ensemble(
+        data, 
+        direction=direction, 
+        boot_size=boot_size
+    )
     # Calculate the confidence intervals using np.percentile
     conf_inter = np.percentile(sample_store, np.array([ci_inf, ci_sup]), axis=0)
     
@@ -107,28 +159,6 @@ def _rp_plot_data(
     )
 
     return conf_rp_inf, conf_rp_sup
-
-###############################################################################
-
-def _calc_bootstrap_ensemble(
-    data, 
-    direction="ascending", 
-    boot_size=1000):
-    
-    # Flatten the input data
-    shape = data.shape[0]
-    
-    # Generate the bootstrap samples using np.random.choice
-    sample_store = np.random.choice(data, (int(boot_size), shape), replace=True)
-    
-    # Sort each row in the sample_store
-    sample_store.sort(axis=1)
-    
-    # Reverse the rows if direction is "descending"
-    if direction == "descending":
-        sample_store = sample_store[:, ::-1]
-    
-    return sample_store
 
 ###############################################################################
 
