@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from climattr.attribution import (
     _calc_bootstrap_ensemble
