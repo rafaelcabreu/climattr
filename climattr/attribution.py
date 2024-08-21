@@ -1,12 +1,14 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 
-from climattr.main import ClimAttr
-from climattr.utils import find_nearest
-from climattr.validator import (
-    validate_bootstrap_ci,
-    validate_direction
+from typing import List
+
+from climattr.utils import (
+    find_nearest,
+    get_percentiles_from_ci
 )
+from climattr.validator import validate_direction
 
 def _calc_bootstrap_ensemble(
     data: np.ndarray, 
@@ -71,13 +73,12 @@ def _calc_bootstrap_ensemble(
 ###############################################################################
 
 def _calc_return_time_confidence(
-    data, 
-    direction="ascending", 
-    bootstrap_ci=95, 
-    boot_size=100):
+    data: np.ndarray, 
+    direction: str = "ascending", 
+    bootstrap_ci: int = 95, 
+    boot_size: int = 100) -> np.ndarray:
 
-    ci_inf = (100 - bootstrap_ci) / 2
-    ci_sup = 100 - (100 - bootstrap_ci) / 2
+    ci_inf, ci_sup = get_percentiles_from_ci(bootstrap_ci)
 
     sample_store = _calc_bootstrap_ensemble(
         data, 
@@ -92,14 +93,14 @@ def _calc_return_time_confidence(
 ###############################################################################
 
 def _rp_plot_data(
-    data,
+    data: np.ndarray,
     fit_function,
-    color,
-    label,
+    color: str,
+    label: str,
     ax,
-    direction='descending',
-    bootstrap_ci=95,
-    boot_size=1000):
+    direction: str = 'descending',
+    bootstrap_ci: int = 95,
+    boot_size: int = 1000) -> List[np.ndarray]:
 
     return_period = np.array([_rp_calculation(data, fit_function, i, direction) for i in data])
 
@@ -163,11 +164,11 @@ def _rp_plot_data(
 ###############################################################################
 
 def _pr_calculation(
-    all_array, 
-    nat_array, 
+    all_array: np.ndarray, 
+    nat_array: np.ndarray, 
     fit_function, 
-    threshold,
-    direction='descending'):
+    threshold: int,
+    direction: str = 'descending') -> float:
 
     params_all = fit_function.fit(all_array)
     params_nat = fit_function.fit(nat_array)
@@ -184,10 +185,10 @@ def _pr_calculation(
 ###############################################################################
 
 def _far_calculation(
-    all_array, 
-    nat_array, 
+    all_array: np.ndarray, 
+    nat_array: np.ndarray, 
     fit_function, 
-    threshold):
+    threshold: float) -> float:
 
     return 1 - (1 / _pr_calculation(
         all_array, nat_array, fit_function, threshold
@@ -196,10 +197,10 @@ def _far_calculation(
 ###############################################################################
 
 def _rp_calculation(
-    data, 
+    data: np.ndarray, 
     fit_function, 
-    threshold,
-    direction='descending'):
+    threshold: float,
+    direction: str = 'descending') -> float:
 
     params = fit_function.fit(data)
 
@@ -212,17 +213,15 @@ def _rp_calculation(
 
 ###############################################################################
 
-@staticmethod
 def attribution_metrics(
-    all, 
-    nat, 
+    all: xr.DataArray, 
+    nat: xr.DataArray, 
     fit_function,
-    threshold,
-    direction='descending',
-    bootstrap_ci=95,
-    boot_size=1000):
+    threshold: float,
+    direction: str = 'descending',
+    bootstrap_ci: int = 95,
+    boot_size: int = 1000) -> pd.DataFrame:
 
-    validate_bootstrap_ci(bootstrap_ci)
     validate_direction(direction)
 
     all_array = all.to_numpy().flatten()
@@ -256,8 +255,7 @@ def attribution_metrics(
                 nat_boot[boot], fit_function, threshold, direction
             )
 
-    ci_inf = (100 - bootstrap_ci) / 2
-    ci_sup = 100 - (100 - bootstrap_ci) / 2
+    ci_inf, ci_sup = get_percentiles_from_ci(bootstrap_ci)
 
     # create empty metrics dataframe
     metrics_result = pd.DataFrame(
@@ -284,13 +282,12 @@ def attribution_metrics(
         
 ###############################################################################
 
-@staticmethod
 def histogram_plot(
     ax,
-    all,
-    nat,
+    all: xr.DataArray,
+    nat: xr.DataArray,
     fit_function,
-    threshold):
+    threshold: float) -> None:
 
     all_array = all.to_numpy().flatten()
     nat_array = nat.to_numpy().flatten()
@@ -321,16 +318,15 @@ def histogram_plot(
 
 ###############################################################################
 
-@staticmethod
 def rp_plot(
     ax,
-    all,
-    nat,
+    all: xr.DataArray,
+    nat: xr.DataArray,
     fit_function,
-    threshold,
-    direction='descending',
-    bootstrap_ci=95,
-    boot_size=1000):
+    threshold: float,
+    direction: str = 'descending',
+    bootstrap_ci: int = 95,
+    boot_size: int = 1000) -> None:
 
     # validation steps
     validate_bootstrap_ci(bootstrap_ci)

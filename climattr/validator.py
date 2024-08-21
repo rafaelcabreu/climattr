@@ -1,9 +1,9 @@
 
 
-def validate_bootstrap_ci(value):
+def validate_ci(value):
 
     if not (isinstance(value, int) and 0 < value <= 100):
-        raise ValueError("bootstrap_ci must be an integer between 1 and 100.")
+        raise ValueError("ci must be an integer between 1 and 100.")
 
 ###############################################################################
 

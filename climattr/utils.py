@@ -1,11 +1,16 @@
 import numpy as np
 import geopandas as gpd
+import re
+import xarray as xr
 
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from glob import glob
 from typing import Union, List
+
+from climattr.validator import validate_ci
 
 def add_features(
     ax: cartopy.mpl.geoaxes.GeoAxes, 
@@ -97,6 +102,17 @@ def find_nearest(value, data):
 
 ###############################################################################
 
+def get_percentiles_from_ci(cofidence_interval):
+
+    validate_ci(cofidence_interval)
+
+    ci_inf = (100 - cofidence_interval) / 2
+    ci_sup = 100 - (100 - cofidence_interval) / 2
+
+    return ci_inf, ci_sup
+
+###############################################################################
+
 def get_xy_coords(dataset):
 
     latitudes = ['lat', 'latitude', 'y']
@@ -111,5 +127,26 @@ def get_xy_coords(dataset):
             x = coord[0]
 
     return x, y
+
+###############################################################################
+
+def from_cmip6(file_path, **kwargs):
+    """Open a NetCDF file and return an instance of CustomDataset."""
+    ensemble_pattern = r'r\d+i\d+p\d+f\d+'
+    ifiles = glob(file_path)
+
+    ensembles = np.unique([
+        re.search(ensemble_pattern, ifile).group() for ifile in ifiles
+    ])
+
+    ds_list = []
+    for ensemble in ensembles:
+        ds_list.append(
+            xr.open_mfdataset(
+                [ifile for ifile in ifiles if ensemble in ifile],
+                **kwargs
+            ).expand_dims({'ensemble': [ensemble]})
+        )
+    return xr.concat(ds_list, dim='ensemble')
 
 ###############################################################################

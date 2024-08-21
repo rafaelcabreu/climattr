@@ -1,17 +1,16 @@
 import argparse
 import scipy
 
-from climattr import ClimAttr as eea
-from climattr.utils import get_xy_coords
+import climattr as eea
 
 
 def _read_file(args, option):
 
     # Load datasets based on the selected data source
     if args.data_source == 'cmip6':
-        data = eea.from_cmip6(option)
+        data = eea.utils.from_cmip6(option)
     elif args.data_source == 'netcdf':
-        data = eea.from_netcdf(option)
+        data = eea.utils.from_netcdf(option)
 
     return data
 
@@ -90,8 +89,8 @@ def main():
         # Filter by bounding box
         if len(args.filter_area) == 4:
             box = [float(coord) for coord in args.filter_area]
-            data = data.filter_area(box=box)
-            data = getattr(data, args.stat_function)(dim=get_xy_coords(data))
+            data = eea.spatial.filter_area(data, box=box)
+            data = getattr(data, args.stat_function)(dim=eea.utils.get_xy_coords(data))
             data[[args.variable]].to_netcdf(
                 args.ofile, 
                 encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
@@ -99,8 +98,8 @@ def main():
         # Filter by shapefile
         elif len(args.filter_area) == 1:
             mask = args.filter_area[0]
-            data = data.filter_area(mask=mask)
-            data = getattr(data, args.stat_function)(dim=get_xy_coords(data))
+            data = eea.spatial.filter_area(data, mask=mask)
+            data = getattr(data, args.stat_function)(dim=eea.utils.get_xy_coords(data))
             data.to_netcdf(args.ofile)
             data[[args.variable]].to_netcdf(
                 args.ofile, 
