@@ -90,13 +90,19 @@ def parser_filter_time(subparsers):
     )
     parser.add_argument(
         '--itime', 
-        required=True, 
+        required=False, 
         help='Initial time used to filter the dataset in the format YYYY-mm-dd'
     )
     parser.add_argument(
         '--etime', 
-        required=True, 
+        required=False, 
         help='End time used to filter the dataset in the format YYYY-mm-dd'
+    )
+    parser.add_argument(
+        '--months', 
+        nargs='+',
+        required=False, 
+        help='Select just specific months from the dataset'
     )
 
 #####################################################################

@@ -22,7 +22,14 @@ def method_filter_time(args):
 
     data = _read_file(args, args.ifile)
 
-    data = data.sel(time=slice(args.itime, args.etime))
+    if args.itime and args.etime:
+        data = data.sel(time=slice(args.itime, args.etime))
+    elif args.months:
+        months = [int(month) for month in args.months]
+        data = data.where(data['time.month'].isin(months))
+    else:
+        raise ValueError('You should either add months argument of itime,etime')
+
     data[[args.variable]].to_netcdf(
         args.ofile, 
         encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
