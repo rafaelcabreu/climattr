@@ -1,4 +1,7 @@
+import matplotlib.pyplot as plt
 import xarray as xr
+
+import scipy.stats
 
 import climattr as eea
 
@@ -45,5 +48,74 @@ def method_filter_area(args):
         encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
     )
 
+#####################################################################
+
+def method_attribution_metrics(args):
+
+    if args.all and args.nat: 
+        all_data = _read_file(args, args.all)
+        nat_data = _read_file(args, args.nat)
+    else:
+        raise ValueError(
+            "To calculate the metrics you should provide both ALL and NAT files paths."
+        )
+
+    fit_function = getattr(scipy.stats, args.fit_function)
+
+    metrics = eea.attribution.attribution_metrics(
+        all_data[args.variable], 
+        nat_data[args.variable], 
+        fit_function, 
+        args.threshold, 
+        bootstrap_ci=95,
+        direction='descending'
+    )
+    
+    # print metrics
+    print(metrics)
+
+    metrics.to_csv(args.ofile)
+
+
+#####################################################################
+
+def method_attribution_plot(args):
+
+    if args.all and args.nat: 
+        all_data = _read_file(args, args.all)
+        nat_data = _read_file(args, args.nat)
+    else:
+        raise ValueError(
+            "To plot the hsitograms you should provide both ALL and NAT files paths."
+        )
+
+    fit_function = getattr(scipy.stats, args.fit_function)
+
+    fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(8,4))
+
+    eea.attribution.histogram_plot(
+        ax1,
+        all_data[args.variable], 
+        nat_data[args.variable], 
+        fit_function, 
+        args.threshold, 
+    )
+
+    eea.attribution.rp_plot(
+        ax2,
+        all_data[args.variable], 
+        nat_data[args.variable], 
+        fit_function, 
+        args.threshold, 
+        direction=args.direction,
+        bootstrap_ci=95
+    )
+
+    ax1.set_xlabel(args.variable)
+    ax1.set_ylabel('PDF')
+    ax2.set_xlabel('Return Period (years)')
+    ax2.set_ylabel(args.variable)
+
+    fig.savefig(args.ofile, dpi=300, bbox_inches='tight')
 
 #####################################################################

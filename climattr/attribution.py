@@ -8,7 +8,10 @@ from climattr.utils import (
     find_nearest,
     get_percentiles_from_ci
 )
-from climattr.validator import validate_direction
+from climattr.validator import (
+    validate_direction, 
+    validate_ci
+)
 
 def _calc_bootstrap_ensemble(
     data: np.ndarray, 
@@ -372,8 +375,8 @@ def rp_plot(
     boot_size: int = 1000) -> None:
 
     # validation steps
-    validate_bootstrap_ci(bootstrap_ci)
     validate_direction(direction)
+    validate_ci(bootstrap_ci)
 
     all_array = np.sort(all.to_numpy().flatten())
     nat_array = np.sort(nat.to_numpy().flatten())
@@ -409,5 +412,7 @@ def rp_plot(
         facecolor='silver', edgecolor='C1',
         linewidth=2., alpha=0.3, zorder=0
     )
+
+    ax.legend()
 
 ###############################################################################

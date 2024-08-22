@@ -26,4 +26,4 @@ dependencies = [
 ]
 
 [project.scripts]
-climattr = "climattr.cli:main"
+climattr = "climattr.cli.main:main"
