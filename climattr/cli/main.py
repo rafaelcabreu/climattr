@@ -20,7 +20,7 @@ from climattr.cli.methods import (
 )
 
 def main():
-    parser = argparse.ArgumentParser(description="Run attribution metrics from CMIP6 data")
+    parser = argparse.ArgumentParser(description="Run Extreme Event Attribution")
     subparsers = parser.add_subparsers(dest='command')
 
     parser_filter_area(subparsers)
@@ -33,21 +33,17 @@ def main():
     
     args = parser.parse_args()
     
-    if args.command == 'filter-time':
-        method_filter_time(args)
-    elif args.command == 'filter-area':
-        method_filter_area(args)
-    elif args.command == 'attr-metrics':
-        method_attribution_metrics(args)
-    elif args.command == 'attr-plot':
-        method_attribution_plot(args)
-    elif args.command == 'qq-plot':
-        method_qq_plot(args)
-    elif args.command == 'validation-plot':
-        method_validation_plot(args)
-    elif args.command == 'xclim-indice':
-        method_xclim(args)
+    methods = {
+        'filter-time': method_filter_time,
+        'filter-area': method_filter_area,
+        'attr-metrics': method_attribution_metrics,
+        'attr-plot': method_attribution_plot,
+        'qq-plot': method_qq_plot,
+        'validation-plot': method_validation_plot,
+        'xclim-indice': method_xclim
+    }
 
+    methods[args.command](args)
 
 if __name__ == '__main__':
     main()

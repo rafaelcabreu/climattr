@@ -164,7 +164,10 @@ def method_xclim(args):
 
     data = _read_file(args, args.ifile)
 
-    xclim_function = getattr(xclim.indicators.atmos, args.xclim_function)
+    xclim_function = getattr(
+        xclim.indicators.atmos, 
+        args.xclim_function
+    )
 
     indice = xclim_function(
         **args.kwargs,
@@ -172,7 +175,8 @@ def method_xclim(args):
     )
 
     indice.to_netcdf(
-        args.output
+        args.ofile, 
+        encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
     )
 
 #####################################################################
