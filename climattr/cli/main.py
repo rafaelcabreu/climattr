@@ -6,7 +6,8 @@ from climattr.cli.parsers import (
     parser_attribution_metrics,
     parser_attribution_plot,
     parser_qq_plot,
-    parser_validation_plot
+    parser_validation_plot,
+    parser_xclim
 )
 from climattr.cli.methods import (
     method_filter_area,
@@ -14,7 +15,8 @@ from climattr.cli.methods import (
     method_attribution_metrics,
     method_attribution_plot,
     method_qq_plot,
-    method_validation_plot
+    method_validation_plot,
+    method_xclim
 )
 
 def main():
@@ -27,30 +29,7 @@ def main():
     parser_attribution_plot(subparsers)
     parser_qq_plot(subparsers)
     parser_validation_plot(subparsers)
-
-    parser.add_argument(
-        '-i', '--ifile', 
-        required=False,
-        help="Path to the input dataset"
-    )
-    parser.add_argument(
-        '-o', '--ofile',
-        required=True,
-        help="Path to the output dataset"
-    )
-    parser.add_argument(
-        '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
-        required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
-    )
-    parser.add_argument(
-        '-v', '--variable',
-        required=True,
-        type=str,
-        default='tas',
-        help="Variable name to use for attribution metrics (default: 'tas')"
-    )
+    parser_xclim(subparsers)
     
     args = parser.parse_args()
     
@@ -66,6 +45,8 @@ def main():
         method_qq_plot(args)
     elif args.command == 'validation-plot':
         method_validation_plot(args)
+    elif args.command == 'xclim-indice':
+        method_xclim(args)
 
 
 if __name__ == '__main__':

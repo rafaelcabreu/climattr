@@ -1,43 +1,98 @@
+import argparse
+
+class ParseKwargs(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, dict())
+        for value in values:
+            key, value = value.split('=')
+            getattr(namespace, self.dest)[key] = value
+
+#####################################################################
 
 def parser_filter_area(subparsers):
 
-    spatial_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'filter-area', 
         help='Function used to filter the dataset based on a spatial filter',
     )
-    spatial_parser.add_argument(
+    parser.add_argument(
+        '-i', '--ifile', 
+        required=True,
+        help="Path to the input dataset"
+    )
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
         '--box', 
         nargs='+',
         required=False, 
         help='Box used to filter the dataset latitude and longitude'
     )
-    spatial_parser.add_argument(
+    parser.add_argument(
         '--mask', 
         required=False, 
         help='Path for the shapefile name used to filter the dataset'
     )
-    spatial_parser.add_argument(
+    parser.add_argument(
         '--reduce',
         required=False,
         choices=['mean', 'min', 'max'],
         help="Statistical function to apply after area filtering (mean, min, or max)"
     )
 
-
 #####################################################################
 
 def parser_filter_time(subparsers):
 
-    time_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'filter-time', 
         help='Function used to filter the dataset based on initial and final time'
     )
-    time_parser.add_argument(
+    parser.add_argument(
+        '-i', '--ifile', 
+        required=True,
+        help="Path to the input dataset"
+    )
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
         '--itime', 
         required=True, 
         help='Initial time used to filter the dataset in the format YYYY-mm-dd'
     )
-    time_parser.add_argument(
+    parser.add_argument(
         '--etime', 
         required=True, 
         help='End time used to filter the dataset in the format YYYY-mm-dd'
@@ -47,33 +102,51 @@ def parser_filter_time(subparsers):
 
 def parser_attribution_metrics(subparsers):
 
-    attribution_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'attr-metrics', 
         help='Function used calculate the attribution metrics (PR, RP, FAR)'
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '-a', '--all', 
-        required=False,
+        required=True,
         help="Path to the CMIP6 'all' dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '-n', '--nat', 
-        required=False,
+        required=True,
         help="Path to the CMIP6 'nat' dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
         '-f', '--fit_function',
         type=str,
         default='norm',
         help="Scipy fit function to use for attribution metrics (default: 'norm')"
     )
-    attribution_parser.add_argument(
-        '-t', '--threshold',
+    parser.add_argument(
+        '-t', '--thresh',
         type=int,
         default=301,
         help="Threshold value for the attribution metrics (default: 301)"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '--direction',
         choices=['descending', 'ascending'],
         default='descending',
@@ -84,33 +157,51 @@ def parser_attribution_metrics(subparsers):
 
 def parser_attribution_plot(subparsers):
 
-    attribution_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'attr-plot', 
         help='Function used to plot attribution histogram and RP'
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '-a', '--all', 
-        required=False,
+        required=True,
         help="Path to the CMIP6 'all' dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '-n', '--nat', 
-        required=False,
+        required=True,
         help="Path to the CMIP6 'nat' dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
         '-f', '--fit_function',
         type=str,
         default='norm',
         help="Scipy fit function to use for attribution metrics (default: 'norm')"
     )
-    attribution_parser.add_argument(
-        '-t', '--threshold',
+    parser.add_argument(
+        '-t', '--thresh',
         type=int,
         default=301,
         help="Threshold value for the attribution metrics (default: 301)"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '--direction',
         choices=['descending', 'ascending'],
         default='descending',
@@ -121,21 +212,39 @@ def parser_attribution_plot(subparsers):
 
 def parser_qq_plot(subparsers):
 
-    attribution_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'qq-plot', 
         help='Function used for QQ-Plot against theoretical quantiles'
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '-a', '--all', 
-        required=False,
+        required=True,
         help="Path to the CMIP6 'all' dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '--obs', 
-        required=False,
+        required=True,
         help="Path to the observational dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
         '-f', '--fit_function',
         type=str,
         default='norm',
@@ -146,25 +255,79 @@ def parser_qq_plot(subparsers):
 
 def parser_validation_plot(subparsers):
 
-    attribution_parser = subparsers.add_parser(
+    parser = subparsers.add_parser(
         'validation-plot', 
         help='Function used for validation plot of OBS and ALL'
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '-a', '--all', 
-        required=False,
+        required=True,
         help="Path to the CMIP6 'all' dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
         '--obs', 
-        required=False,
+        required=True,
         help="Path to the observational dataset files"
     )
-    attribution_parser.add_argument(
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
         '-f', '--fit_function',
         type=str,
         default='norm',
         help="Scipy fit function to use for attribution metrics (default: 'norm')"
+    )
+
+#####################################################################
+
+def parser_xclim(subparsers):
+
+    parser = subparsers.add_parser(
+        'xclim-indice', 
+        help='Function used to wrap xclim library and calculate the indice'
+    )
+    parser.add_argument(
+        '-i', '--ifile', 
+        required=True,
+        help="Path to the input dataset"
+    )
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '--xclim-function', 
+        required=True,
+        help="Name of the function that will calculate the indice. See: https://xclim.readthedocs.io/en/stable/api_indicators.html"
+    )
+    parser.add_argument(
+        '-k', '--kwargs', 
+        nargs='*', 
+        action=ParseKwargs,
+        help='Arguments used in the xclim function. See: https://xclim.readthedocs.io/en/stable/api_indicators.html'
     )
 
 #####################################################################

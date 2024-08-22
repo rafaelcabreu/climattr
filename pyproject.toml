@@ -23,6 +23,7 @@ dependencies = [
   "rioxarray==0.17.0",
   "scipy==1.14.0",
   "xarray==2024.7.0",
+  "xclim==0.52.0"
 ]
 
 [project.scripts]

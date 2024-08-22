@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import xarray as xr
+import xclim
 
 import scipy.stats
 
@@ -52,13 +53,8 @@ def method_filter_area(args):
 
 def method_attribution_metrics(args):
 
-    if args.all and args.nat: 
-        all_data = _read_file(args, args.all)
-        nat_data = _read_file(args, args.nat)
-    else:
-        raise ValueError(
-            "To calculate the metrics you should provide both ALL and NAT files paths."
-        )
+    all_data = _read_file(args, args.all)
+    nat_data = _read_file(args, args.nat)
 
     fit_function = getattr(scipy.stats, args.fit_function)
 
@@ -66,7 +62,7 @@ def method_attribution_metrics(args):
         all_data[args.variable], 
         nat_data[args.variable], 
         fit_function, 
-        args.threshold, 
+        args.thresh, 
         bootstrap_ci=95,
         direction='descending'
     )
@@ -80,13 +76,8 @@ def method_attribution_metrics(args):
 
 def method_attribution_plot(args):
 
-    if args.all and args.nat: 
-        all_data = _read_file(args, args.all)
-        nat_data = _read_file(args, args.nat)
-    else:
-        raise ValueError(
-            "To plot the histograms you should provide both ALL and NAT files paths."
-        )
+    all_data = _read_file(args, args.all)
+    nat_data = _read_file(args, args.nat)
 
     fit_function = getattr(scipy.stats, args.fit_function)
 
@@ -97,7 +88,7 @@ def method_attribution_plot(args):
         all_data[args.variable], 
         nat_data[args.variable], 
         fit_function, 
-        args.threshold, 
+        args.thresh, 
     )
 
     eea.attribution.rp_plot(
@@ -105,7 +96,7 @@ def method_attribution_plot(args):
         all_data[args.variable], 
         nat_data[args.variable], 
         fit_function, 
-        args.threshold, 
+        args.thresh, 
         direction=args.direction,
         bootstrap_ci=95
     )
@@ -122,13 +113,8 @@ def method_attribution_plot(args):
 
 def method_qq_plot(args):
 
-    if args.all and args.obs: 
-        all_data = _read_file(args, args.all)
-        obs_data = _read_file(args, args.obs)
-    else:
-        raise ValueError(
-            "To plot the qq-plot you should provide both ALL and OBS files paths."
-        )
+    all_data = _read_file(args, args.all)
+    obs_data = _read_file(args, args.obs)
 
     fit_function = getattr(scipy.stats, args.fit_function)
 
@@ -153,13 +139,8 @@ def method_qq_plot(args):
 
 def method_validation_plot(args):
 
-    if args.all and args.obs: 
-        all_data = _read_file(args, args.all)
-        obs_data = _read_file(args, args.obs)
-    else:
-        raise ValueError(
-            "To plot the qq-plot you should provide both ALL and OBS files paths."
-        )
+    all_data = _read_file(args, args.all)
+    obs_data = _read_file(args, args.obs)
 
     fit_function = getattr(scipy.stats, args.fit_function)
 
@@ -176,5 +157,22 @@ def method_validation_plot(args):
 
     plt.tight_layout()
     fig.savefig(args.ofile, dpi=300, bbox_inches='tight')
+
+#####################################################################
+
+def method_xclim(args):
+
+    data = _read_file(args, args.ifile)
+
+    xclim_function = getattr(xclim.indicators.atmos, args.xclim_function)
+
+    indice = xclim_function(
+        **args.kwargs,
+        ds=data
+    )
+
+    indice.to_netcdf(
+        args.output
+    )
 
 #####################################################################

@@ -213,18 +213,18 @@ def _pr_calculation(
     all_array: np.ndarray, 
     nat_array: np.ndarray, 
     fit_function, 
-    threshold: int,
+    thresh: int,
     direction: str = 'descending') -> float:
 
     params_all = fit_function.fit(all_array)
     params_nat = fit_function.fit(nat_array)
 
     if direction == 'descending':
-        pr = fit_function.sf(threshold, *params_all) \
-            / fit_function.sf(threshold, *params_nat)
+        pr = fit_function.sf(thresh, *params_all) \
+            / fit_function.sf(thresh, *params_nat)
     else:
-        pr = fit_function.cdf(threshold, *params_all) \
-            / fit_function.cdf(threshold, *params_nat)
+        pr = fit_function.cdf(thresh, *params_all) \
+            / fit_function.cdf(thresh, *params_nat)
 
     return pr
 
@@ -234,10 +234,10 @@ def _far_calculation(
     all_array: np.ndarray, 
     nat_array: np.ndarray, 
     fit_function, 
-    threshold: float) -> float:
+    thresh: float) -> float:
 
     return 1 - (1 / _pr_calculation(
-        all_array, nat_array, fit_function, threshold
+        all_array, nat_array, fit_function, thresh
     ))
 
 ###############################################################################
@@ -245,15 +245,15 @@ def _far_calculation(
 def _rp_calculation(
     data: np.ndarray, 
     fit_function, 
-    threshold: float,
+    thresh: float,
     direction: str = 'descending') -> float:
 
     params = fit_function.fit(data)
 
     if direction == 'descending':
-        rp = 1 / fit_function.sf(threshold, *params)
+        rp = 1 / fit_function.sf(thresh, *params)
     else:
-        rp = 1 / fit_function.cdf(threshold, *params)
+        rp = 1 / fit_function.cdf(thresh, *params)
 
     return rp
 
@@ -263,7 +263,7 @@ def attribution_metrics(
     all: xr.DataArray, 
     nat: xr.DataArray, 
     fit_function,
-    threshold: float,
+    thresh: float,
     direction: str = 'descending',
     bootstrap_ci: int = 95,
     boot_size: int = 1000) -> pd.DataFrame:
@@ -286,19 +286,19 @@ def attribution_metrics(
     for boot in range(int(boot_size)):
         metrics['PR'][boot] = \
             _pr_calculation(
-                all_boot[boot], nat_boot[boot], fit_function, threshold, direction
+                all_boot[boot], nat_boot[boot], fit_function, thresh, direction
             )
         metrics['FAR'][boot] = \
             _far_calculation(
-                all_boot[boot], nat_boot[boot], fit_function, threshold
+                all_boot[boot], nat_boot[boot], fit_function, thresh
             )
         metrics['RP_ALL'][boot] = \
             _rp_calculation(
-                all_boot[boot], fit_function, threshold, direction
+                all_boot[boot], fit_function, thresh, direction
             )
         metrics['RP_NAT'][boot] = \
             _rp_calculation(
-                nat_boot[boot], fit_function, threshold, direction
+                nat_boot[boot], fit_function, thresh, direction
             )
 
     ci_inf, ci_sup = get_percentiles_from_ci(bootstrap_ci)
@@ -333,7 +333,7 @@ def histogram_plot(
     all: xr.DataArray,
     nat: xr.DataArray,
     fit_function,
-    threshold: float) -> None:
+    thresh: float) -> None:
 
     all_array = all.to_numpy().flatten()
     nat_array = nat.to_numpy().flatten()
@@ -359,7 +359,7 @@ def histogram_plot(
     ax.plot(x_all, fit_function.pdf(x_all, *params_all), color='C0', lw=2)
     ax.plot(x_nat, fit_function.pdf(x_nat, *params_nat), color='C1', lw=2)
 
-    ax.axvline(threshold, color='k', ls='--')
+    ax.axvline(thresh, color='k', ls='--')
     ax.legend()
 
 ###############################################################################
@@ -369,7 +369,7 @@ def rp_plot(
     all: xr.DataArray,
     nat: xr.DataArray,
     fit_function,
-    threshold: float,
+    thresh: float,
     direction: str = 'descending',
     bootstrap_ci: int = 95,
     boot_size: int = 1000) -> None:
@@ -392,23 +392,23 @@ def rp_plot(
         nat_array, fit_function, 'C1', 'NAT', ax, direction, bootstrap_ci, boot_size
     )
 
-    ax.axhline(threshold, color='k', ls='--')
+    ax.axhline(thresh, color='k', ls='--')
 
     # add return period estimate for ALL
-    idx = find_nearest(threshold, all_array)
+    idx = find_nearest(thresh, all_array)
     ymin, ymax = ax.get_ylim()
     ax.axvspan(
         conf_rp_inf_all[idx], conf_rp_sup_all[idx], 
-        ymin=0, ymax=(threshold - ymin)/ (ymax - ymin),
+        ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
         facecolor='silver', edgecolor='C0',
         linewidth=2., alpha=0.3, zorder=0
     )
 
     # add return period estimate for NAT
-    idx = find_nearest(threshold, nat_array)
+    idx = find_nearest(thresh, nat_array)
     ax.axvspan(
         conf_rp_inf_nat[idx], conf_rp_sup_nat[idx], 
-        ymin=0, ymax=(threshold - ymin)/ (ymax - ymin),
+        ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
         facecolor='silver', edgecolor='C1',
         linewidth=2., alpha=0.3, zorder=0
     )
