@@ -86,7 +86,7 @@ def parser_attribution_plot(subparsers):
 
     attribution_parser = subparsers.add_parser(
         'attr-plot', 
-        help='Function used calculate the attribution metrics (PR, RP, FAR)'
+        help='Function used to plot attribution histogram and RP'
     )
     attribution_parser.add_argument(
         '-a', '--all', 
@@ -115,6 +115,56 @@ def parser_attribution_plot(subparsers):
         choices=['descending', 'ascending'],
         default='descending',
         help="Direction for the bootstrap ordering that will be used to calculate RP"
+    )
+
+#####################################################################
+
+def parser_qq_plot(subparsers):
+
+    attribution_parser = subparsers.add_parser(
+        'qq-plot', 
+        help='Function used for QQ-Plot against theoretical quantiles'
+    )
+    attribution_parser.add_argument(
+        '-a', '--all', 
+        required=False,
+        help="Path to the CMIP6 'all' dataset files"
+    )
+    attribution_parser.add_argument(
+        '--obs', 
+        required=False,
+        help="Path to the observational dataset files"
+    )
+    attribution_parser.add_argument(
+        '-f', '--fit_function',
+        type=str,
+        default='norm',
+        help="Scipy fit function to use for attribution metrics (default: 'norm')"
+    )
+
+#####################################################################
+
+def parser_validation_plot(subparsers):
+
+    attribution_parser = subparsers.add_parser(
+        'validation-plot', 
+        help='Function used for validation plot of OBS and ALL'
+    )
+    attribution_parser.add_argument(
+        '-a', '--all', 
+        required=False,
+        help="Path to the CMIP6 'all' dataset files"
+    )
+    attribution_parser.add_argument(
+        '--obs', 
+        required=False,
+        help="Path to the observational dataset files"
+    )
+    attribution_parser.add_argument(
+        '-f', '--fit_function',
+        type=str,
+        default='norm',
+        help="Scipy fit function to use for attribution metrics (default: 'norm')"
     )
 
 #####################################################################

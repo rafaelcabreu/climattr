@@ -4,13 +4,17 @@ from climattr.cli.parsers import (
     parser_filter_area,
     parser_filter_time,
     parser_attribution_metrics,
-    parser_attribution_plot
+    parser_attribution_plot,
+    parser_qq_plot,
+    parser_validation_plot
 )
 from climattr.cli.methods import (
     method_filter_area,
     method_filter_time,
     method_attribution_metrics,
-    method_attribution_plot
+    method_attribution_plot,
+    method_qq_plot,
+    method_validation_plot
 )
 
 def main():
@@ -21,6 +25,8 @@ def main():
     parser_filter_time(subparsers)
     parser_attribution_metrics(subparsers)
     parser_attribution_plot(subparsers)
+    parser_qq_plot(subparsers)
+    parser_validation_plot(subparsers)
 
     parser.add_argument(
         '-i', '--ifile', 
@@ -56,6 +62,11 @@ def main():
         method_attribution_metrics(args)
     elif args.command == 'attr-plot':
         method_attribution_plot(args)
+    elif args.command == 'qq-plot':
+        method_qq_plot(args)
+    elif args.command == 'validation-plot':
+        method_validation_plot(args)
+
 
 if __name__ == '__main__':
     main()

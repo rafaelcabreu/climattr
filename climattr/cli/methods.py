@@ -76,7 +76,6 @@ def method_attribution_metrics(args):
 
     metrics.to_csv(args.ofile)
 
-
 #####################################################################
 
 def method_attribution_plot(args):
@@ -86,7 +85,7 @@ def method_attribution_plot(args):
         nat_data = _read_file(args, args.nat)
     else:
         raise ValueError(
-            "To plot the hsitograms you should provide both ALL and NAT files paths."
+            "To plot the histograms you should provide both ALL and NAT files paths."
         )
 
     fit_function = getattr(scipy.stats, args.fit_function)
@@ -116,6 +115,66 @@ def method_attribution_plot(args):
     ax2.set_xlabel('Return Period (years)')
     ax2.set_ylabel(args.variable)
 
+    plt.tight_layout()
+    fig.savefig(args.ofile, dpi=300, bbox_inches='tight')
+
+#####################################################################
+
+def method_qq_plot(args):
+
+    if args.all and args.obs: 
+        all_data = _read_file(args, args.all)
+        obs_data = _read_file(args, args.obs)
+    else:
+        raise ValueError(
+            "To plot the qq-plot you should provide both ALL and OBS files paths."
+        )
+
+    fit_function = getattr(scipy.stats, args.fit_function)
+
+    fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(8,4))
+
+    #eea.validation.qq_plot(ax, nat['tas'], all['tas'])
+    eea.validation.qq_plot_theoretical(ax1, obs_data[args.variable], fit_function)
+    eea.validation.qq_plot_theoretical(ax2, all_data[args.variable], fit_function)
+
+    ax1.set_title('OBS')
+    ax2.set_title('ALL')
+
+    ax1.set_xlabel('Theoretical Percentiles')
+    ax1.set_ylabel(args.variable)
+    ax2.set_xlabel('Theoretical Percentiles')
+    ax2.set_ylabel(args.variable)
+
+    plt.tight_layout()
+    fig.savefig(args.ofile, dpi=300, bbox_inches='tight')
+
+#####################################################################
+
+def method_validation_plot(args):
+
+    if args.all and args.obs: 
+        all_data = _read_file(args, args.all)
+        obs_data = _read_file(args, args.obs)
+    else:
+        raise ValueError(
+            "To plot the qq-plot you should provide both ALL and OBS files paths."
+        )
+
+    fit_function = getattr(scipy.stats, args.fit_function)
+
+    fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(8,4))
+
+    #eea.validation.qq_plot(ax, nat['tas'], all['tas'])
+    eea.validation.histogram_plot(ax1, obs_data[args.variable], all_data[args.variable], fit_function)
+    eea.validation.qq_plot(ax2, obs_data[args.variable], all_data[args.variable])
+
+    ax1.set_xlabel(args.variable)
+    ax1.set_ylabel('PDF')
+    ax2.set_xlabel('OBS')
+    ax2.set_ylabel('ALL')
+
+    plt.tight_layout()
     fig.savefig(args.ofile, dpi=300, bbox_inches='tight')
 
 #####################################################################
