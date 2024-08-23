@@ -167,23 +167,60 @@ def method_validation_plot(args):
 
 #####################################################################
 
+def method_exploratory_plot(args):
+
+    data = _read_file(args, args.ifile)
+
+    fit_function = getattr(scipy.stats, args.fit_function)
+
+    fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(8,4))
+
+    eea.exploratory.timeseries_plot(
+        ax1, 
+        data[args.variable].isel(ensemble=0), 
+        highlight_year=args.year
+    )
+    eea.exploratory.rp_plot(
+        ax2, 
+        data[args.variable].isel(ensemble=0), 
+        fit_function, 
+        highlight_year=args.year
+    )
+
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel(args.variable)
+    ax2.set_xlabel('Return Period (years)')
+    ax2.set_ylabel(args.variable)
+
+    plt.tight_layout()
+    fig.savefig(args.ofile, dpi=300, bbox_inches='tight')
+
+#####################################################################
+
 def method_xclim(args):
 
     data = _read_file(args, args.ifile)
 
-    xclim_function = getattr(
-        xclim.indicators.atmos, 
-        args.xclim_function
-    )
+    with xclim.set_options(
+        check_missing="pct",
+        missing_options={"pct": dict(tolerance=1)},
+        cf_compliance="log",
+        data_validation='log'
+    ):
 
-    indice = xclim_function(
-        **args.kwargs,
-        ds=data
-    )
+        xclim_function = getattr(
+            xclim.indicators.atmos, 
+            args.xclim_function
+        )
 
-    indice.to_netcdf(
-        args.ofile, 
-        encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
-    )
+        indice = xclim_function(
+            **args.kwargs,
+            ds=data
+        )
+
+        indice.to_netcdf(
+            args.ofile, 
+            encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
+        )
 
 #####################################################################

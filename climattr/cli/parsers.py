@@ -303,6 +303,49 @@ def parser_validation_plot(subparsers):
 
 #####################################################################
 
+def parser_exploratory_plot(subparsers):
+
+    parser = subparsers.add_parser(
+        'exploratory-plot', 
+        help='Function used to explore the plots for OBS'
+    )
+    parser.add_argument(
+        '-i', '--ifile', 
+        required=True,
+        help="Path to the input dataset"
+    )
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
+        '-f', '--fit_function',
+        type=str,
+        default='norm',
+        help="Scipy fit function to use for attribution metrics (default: 'norm')"
+    )
+    parser.add_argument(
+        '-y', '--year',
+        type=int,
+        help="Year of the extreme event that is being analyzed"
+    )
+
+#####################################################################
+
 def parser_xclim(subparsers):
 
     parser = subparsers.add_parser(
