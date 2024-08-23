@@ -150,3 +150,20 @@ def from_cmip6(file_path, **kwargs):
     return xr.concat(ds_list, dim='ensemble')
 
 ###############################################################################
+
+def get_fitted_percentiles(percentiles, params, fit_function):
+
+    if len(params) == 2:
+        scores = fit_function.ppf(
+            percentiles / 100, loc=params[0], scale=params[1]
+        )
+    elif len(params) == 3:
+        scores = fit_function.ppf(
+            percentiles / 100, params[0], loc=params[1], scale=params[2]
+        )
+    else:
+        raise ValueError('Could not fit the given function number of estimated parameters > 3')
+
+    return scores
+
+###############################################################################

@@ -13,3 +13,10 @@ def validate_direction(value):
         raise ValueError("direction must be either 'ascending' or 'descending'.")
 
 ###############################################################################
+
+def validate_correction_method(value):
+
+    if value not in ['add', 'divide']:
+        raise ValueError("method must be either 'add' or 'divide'.")
+
+###############################################################################

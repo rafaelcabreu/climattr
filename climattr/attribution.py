@@ -6,7 +6,8 @@ from typing import List
 
 from climattr.utils import (
     find_nearest,
-    get_percentiles_from_ci
+    get_percentiles_from_ci,
+    get_fitted_percentiles
 )
 from climattr.validator import (
     validate_direction, 
@@ -345,16 +346,9 @@ def histogram_plot(
     ax.hist(nat_array, color='C1', alpha=0.5, density=True, label='NAT')
 
     # fit the requested distribution and plot it as a line
-    x_all = np.linspace(
-        fit_function.ppf(0.01, params_all[0]), 
-        fit_function.ppf(0.99, params_all[0]), 
-        700
-    )
-    x_nat = np.linspace(
-        fit_function.ppf(0.01, params_nat[0]), 
-        fit_function.ppf(0.99, params_nat[0]), 
-        700
-    )
+    percentiles = np.linspace(0, 100, 700)
+    x_all = get_fitted_percentiles(percentiles, params_all, fit_function)
+    x_nat = get_fitted_percentiles(percentiles, params_nat, fit_function)
 
     ax.plot(x_all, fit_function.pdf(x_all, *params_all), color='C0', lw=2)
     ax.plot(x_nat, fit_function.pdf(x_nat, *params_nat), color='C1', lw=2)

@@ -8,7 +8,8 @@ from climattr.cli.parsers import (
     parser_qq_plot,
     parser_validation_plot,
     parser_exploratory_plot,
-    parser_xclim
+    parser_xclim,
+    parser_scaling
 )
 from climattr.cli.methods import (
     method_filter_area,
@@ -18,7 +19,8 @@ from climattr.cli.methods import (
     method_qq_plot,
     method_validation_plot,
     method_exploratory_plot,
-    method_xclim
+    method_xclim,
+    method_scaling
 )
 
 def main():
@@ -33,6 +35,7 @@ def main():
     parser_validation_plot(subparsers)
     parser_exploratory_plot(subparsers)
     parser_xclim(subparsers)
+    parser_scaling(subparsers)
     
     args = parser.parse_args()
     
@@ -44,7 +47,8 @@ def main():
         'qq-plot': method_qq_plot,
         'validation-plot': method_validation_plot,
         'exploratory-plot': method_exploratory_plot,
-        'xclim-indice': method_xclim
+        'xclim-indice': method_xclim,
+        'scale': method_scaling
     }
 
     methods[args.command](args)

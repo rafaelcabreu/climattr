@@ -224,3 +224,23 @@ def method_xclim(args):
         )
 
 #####################################################################
+
+def method_scaling(args):
+
+    data = _read_file(args, args.ifile)
+    clim = _read_file(args, args.clim)
+
+    scaled_data = eea.correction.scaling(
+        data[args.var],
+        clim[args.var],
+        args.idate,
+        args.edate,
+        method = args.method
+    )
+
+    scaled_data.to_netcdf(
+        args.ofile, 
+        encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
+    )
+
+#####################################################################

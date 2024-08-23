@@ -381,3 +381,56 @@ def parser_xclim(subparsers):
     )
 
 #####################################################################
+
+def parser_scaling(subparsers):
+
+    parser = subparsers.add_parser(
+        'scale', 
+        help='Function used to scale data by a given climatology (add or divide)'
+    )
+    parser.add_argument(
+        '-i', '--ifile', 
+        required=True,
+        help="Path to the input dataset"
+    )
+    parser.add_argument(
+        '-c', '--clim', 
+        required=True,
+        help="Path to the climatology dataset"
+    )
+    parser.add_argument(
+        '-o', '--ofile',
+        required=True,
+        help="Path to the output dataset"
+    )
+    parser.add_argument(
+        '-d', '--data-source', 
+        choices=['cmip6', 'netcdf'],
+        required=True,
+        help="Specify the data source type: 'cmip6' or 'netcdf'"
+    )
+    parser.add_argument(
+        '-v', '--variable',
+        required=True,
+        type=str,
+        default='tas',
+        help="Variable name to use for attribution metrics (default: 'tas')"
+    )
+    parser.add_argument(
+        '--idate',
+        type=str,
+        help="Initial date used to calculate the climatology"
+    )
+    parser.add_argument(
+        '--edate',
+        type=str,
+        help="End date used to calculate the climatology"
+    )
+    parser.add_argument(
+        '--method',
+        choices=['add', 'divide'],
+        default='add',
+        help="Method used to scale the data (add or divide)"
+    )
+
+#####################################################################
