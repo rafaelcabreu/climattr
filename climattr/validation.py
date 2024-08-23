@@ -10,7 +10,31 @@ def histogram_plot(
     obs: xr.DataArray,
     all: xr.DataArray,
     fit_function) -> None:
+    """
+    Plot histograms for observed and model data, including their probability 
+    density functions.
 
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The plot axis on which to draw the histograms.
+    
+    obs : xr.DataArray
+        The observed data.
+    
+    all : xr.DataArray
+        The model or "all" scenario data.
+    
+    fit_function : statistical function
+        A statistical function used to fit the data and calculate the probability 
+        density function.
+
+    Returns
+    -------
+    None
+        The function adds the histogram and line plot to the provided axis and 
+        does not return anything.
+    """
     all_array = all.to_numpy().flatten()
     obs_array = obs.to_numpy().flatten()
 
@@ -35,7 +59,26 @@ def qq_plot(
     ax,
     obs: xr.DataArray,
     all: xr.DataArray) -> None:
+    """
+    Generate a quantile-quantile plot to compare quantiles of observed data 
+    against model data.
 
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The plot axis on which to draw the QQ plot.
+    
+    obs : xr.DataArray
+        The observed data.
+    
+    all : xr.DataArray
+        The model or simulated data.
+
+    Returns
+    -------
+    None
+        The function does not return anything; it directly modifies the provided axis.
+    """
     percentiles = np.arange(1,101,1)
 
     all_array = all.to_numpy().flatten()
@@ -62,7 +105,24 @@ def qq_plot_theoretical(
     ax,
     data: xr.DataArray,
     fit_function) -> None:
+    """
+    Generate a theoretical quantile-quantile plot to compare data quantiles against 
+    a fitted theoretical distribution.
 
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The plot axis on which to draw the theoretical QQ plot.
+    data : xr.DataArray
+        The data array from which quantiles are calculated.
+    fit_function : statistical function
+        A statistical function used to fit the data and estimate theoretical quantiles.
+
+    Returns
+    -------
+    None
+        The function does not return anything; it directly modifies the provided axis.
+    """
     data_array = data.to_numpy().flatten()
     percentiles = scipy.stats.percentileofscore(
         data_array,

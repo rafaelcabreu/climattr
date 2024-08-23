@@ -19,20 +19,22 @@ def _calc_bootstrap_ensemble(
     direction: str = "ascending", 
     boot_size: int = 1000) -> np.ndarray:
     """
-    Generates bootstrap ensembles from the input data and sorts them in the specified direction.
+    Generates bootstrap ensembles from the input data and sorts them in the 
+    specified direction.
     
-    This function creates multiple bootstrap samples from the input data, sorts each sample, 
-    and optionally reverses the order of the sorted samples based on the specified direction.
+    This function creates multiple bootstrap samples from the input data, sorts 
+    each sample, and optionally reverses the order of the sorted samples based on 
+    the specified direction.
 
     Parameters
     ----------
     data : numpy.ndarray
-        An array of shape (n_samples,) containing the input data from which bootstrap samples 
-        will be drawn.
+        An array of shape (n_samples,) containing the input data from which 
+        bootstrap samples will be drawn.
         
     direction : str, optional
-        The direction in which to sort the bootstrap samples. Can be either "ascending" (default) 
-        or "descending".
+        The direction in which to sort the bootstrap samples. Can be either 
+        "ascending" (default) or "descending".
         
     boot_size : int, optional
         The number of bootstrap samples to generate. Default is 1000.
@@ -40,8 +42,9 @@ def _calc_bootstrap_ensemble(
     Returns
     -------
     numpy.ndarray
-        A 2D array of shape (boot_size, n_samples) where each row is a sorted bootstrap sample 
-        drawn from the input data. The samples are sorted in the specified direction.
+        A 2D array of shape (boot_size, n_samples) where each row is a sorted 
+        bootstrap sample drawn from the input data. The samples are sorted in the 
+        specified direction.
     
     Examples
     --------
@@ -82,25 +85,26 @@ def _calc_return_time_confidence(
     bootstrap_ci: int = 95, 
     boot_size: int = 100) -> np.ndarray:
     """
-    Calculates the confidence intervals for the return time of a dataset using bootstrapping.
+    Calculates the confidence intervals for the return time of a dataset using 
+    bootstrapping.
 
-    This function generates bootstrap samples from the input data, sorts them in the specified
-    direction, and then calculates the confidence intervals for the return time based on the
-    specified confidence interval percentage.
+    This function generates bootstrap samples from the input data, sorts them in 
+    the specified direction, and then calculates the confidence intervals for the 
+    return time based on the specified confidence interval percentage.
 
     Parameters
     ----------
     data : numpy.ndarray
-        An array of shape (n_samples,) containing the input data for which return time 
-        confidence intervals will be calculated.
+        An array of shape (n_samples,) containing the input data for which return 
+        time confidence intervals will be calculated.
         
     direction : str, optional
-        The direction in which to sort the bootstrap samples. Can be either "ascending" 
-        (default) or "descending".
+        The direction in which to sort the bootstrap samples. Can be either 
+        "ascending" (default) or "descending".
         
     bootstrap_ci : int, optional
-        The confidence interval percentage to use for calculating the return time confidence 
-        intervals. Default is 95, representing a 95% confidence interval.
+        The confidence interval percentage to use for calculating the return time 
+        confidence intervals. Default is 95, representing a 95% confidence interval.
         
     boot_size : int, optional
         The number of bootstrap samples to generate. Default is 100.
@@ -108,19 +112,24 @@ def _calc_return_time_confidence(
     Returns
     -------
     numpy.ndarray
-        A 2D array of shape (2, n_samples) where the first row contains the lower bound and the 
-        second row contains the upper bound of the confidence intervals for each sample.
+        A 2D array of shape (2, n_samples) where the first row contains the lower 
+        bound and the second row contains the upper bound of the confidence 
+        intervals for each sample.
 
     Examples
     --------
     >>> import numpy as np
     >>> data = np.array([3.2, 1.5, 4.7, 2.8])
-    >>> result = _calc_return_time_confidence(data, direction="ascending", bootstrap_ci=95, boot_size=3)
+    >>> result = _calc_return_time_confidence(
+        data, direction="ascending", bootstrap_ci=95, boot_size=3
+    )
     >>> result
     array([[1.5, 2.8, 3.2, 4.7],
            [1.5, 3.2, 3.2, 4.7]])
 
-    >>> result = _calc_return_time_confidence(data, direction="descending", bootstrap_ci=90, boot_size=2)
+    >>> result = _calc_return_time_confidence(
+        data, direction="descending", bootstrap_ci=90, boot_size=2
+    )
     >>> result
     array([[4.7, 3.2, 3.2, 1.5],
            [4.7, 3.2, 2.8, 1.5]])
@@ -151,15 +160,15 @@ def _rp_plot_data(
     """
     Plots return period data along with its confidence intervals on a given axis.
 
-    This function generates the return period data from the input data using a specified 
-    fit function. It also calculates and plots the confidence intervals for the return 
-    periods based on bootstrap sampling.
+    This function generates the return period data from the input data using a 
+    specified fit function. It also calculates and plots the confidence intervals 
+    for the return periods based on bootstrap sampling.
 
     Parameters
     ----------
     data : numpy.ndarray
-        An array of shape (n_samples,) containing the input data for which return periods 
-        and confidence intervals will be calculated.
+        An array of shape (n_samples,) containing the input data for which return 
+        periods and confidence intervals will be calculated.
         
     fit_function : callable
         A function that fits the input data to a distribution and calculates the 
@@ -175,8 +184,8 @@ def _rp_plot_data(
         The matplotlib axes object on which to plot the data.
         
     direction : str, optional
-        The direction in which to sort the bootstrap samples. Can be either "ascending" 
-        or "descending" (default).
+        The direction in which to sort the bootstrap samples. Can be either 
+        "ascending" or "descending" (default).
         
     bootstrap_ci : int, optional
         The confidence interval percentage to use for calculating the return time 
@@ -191,7 +200,9 @@ def _rp_plot_data(
         A list of two arrays containing the lower and upper bounds of the confidence 
         intervals for each sample.
     """
-    return_period = np.array([_rp_calculation(data, fit_function, i, direction) for i in data])
+    return_period = np.array([
+        _rp_calculation(data, fit_function, i, direction) for i in data]
+    )
 
     conf_data = _calc_return_time_confidence(
         data, 
@@ -261,8 +272,8 @@ def _pr_calculation(
     """
     Calculates the probability ratio (PR) between two datasets.
 
-    This function fits the input datasets to a specified distribution using the provided 
-    fit function and calculates the probability ratio for a given threshold.
+    This function fits the input datasets to a specified distribution using the 
+    provided fit function and calculates the probability ratio for a given threshold.
 
     Parameters
     ----------
@@ -279,7 +290,8 @@ def _pr_calculation(
         The threshold value for which the probability ratio will be calculated.
         
     direction : str, optional
-        The direction in which to calculate the probability ratio. Default is "descending".
+        The direction in which to calculate the probability ratio. Default is 
+        "descending".
 
     Returns
     -------
@@ -308,9 +320,9 @@ def _far_calculation(
     """
     Calculates the Fraction of Attributable Risk (FAR) between two datasets.
 
-    This function computes the FAR, which is a measure of the fraction of risk attributable 
-    to a specific factor, by comparing the probability ratio (PR) between the "all" and 
-    "natural" scenario datasets.
+    This function computes the FAR, which is a measure of the fraction of risk 
+    attributable to a specific factor, by comparing the probability ratio (PR) 
+    between the "all" and "natural" scenario datasets.
 
     Parameters
     ----------
@@ -345,8 +357,8 @@ def _rp_calculation(
     """
     Calculates the return period for a given threshold in the dataset.
 
-    This function fits the input data to a specified distribution and calculates the 
-    return period for a given threshold value.
+    This function fits the input data to a specified distribution and calculates 
+    the return period for a given threshold value.
 
     Parameters
     ----------

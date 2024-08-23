@@ -14,7 +14,26 @@ from climattr.utils import (
 def _mask_area(
     dataset: xr.Dataset, 
     shapefile: gpd.GeoDataFrame) -> xr.Dataset:
+    """
+    Apply a geographical mask from a shapefile to a given xarray Dataset.
 
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        The xarray Dataset to be masked.
+    
+    shapefile : gpd.GeoDataFrame
+        A GeoDataFrame containing the geometries to be used for masking the dataset.
+
+    Returns
+    -------
+    xr.Dataset
+        The masked xarray Dataset where data outside the geometries are set to NaN.
+
+    Notes
+    -----
+    This function assumes that the dataset includes latitude and longitude dimensions.
+    """
     # get coords
     x, y = get_xy_coords(dataset)
 
@@ -45,7 +64,29 @@ def _plot_area(
     mask: Union[None, str] = None,
     box: Union[None, List] = None,
     ) -> None:
+    """
+    Plot a spatial area based on the specified selection criteria, either mask or box.
 
+    Parameters
+    ----------
+    spatial_sel : str
+        The type of spatial selection to plot ('mask' or 'box').
+    
+    mask : str or None, optional
+        The filepath to the shapefile used for the mask if spatial_sel is 'mask'.
+    
+    box : list or None, optional
+        The geographical extent [xmin, xmax, ymin, ymax] if spatial_sel is 'box'.
+
+    Raises
+    ------
+    ValueError
+        If no valid spatial selection is provided.
+
+    Notes
+    -----
+    This function uses Cartopy for plotting and requires a specific projection.
+    """
     if not spatial_sel:
         ValueError("Should first run 'filter_area' before plotting")
     elif spatial_sel == 'mask':
@@ -61,11 +102,43 @@ def _plot_area(
 
 def filter_area(
     dataset: xr.Dataset, 
-    mask: Union[None, str] = None,
-    box: Union[None, List] = None,
+    mask: None | str = None,
+    box: None | List = None,
     plot_area: bool = False
     ):
+    """
+    Filter the dataset based on a geographical mask or bounding box and optionally 
+    plot the result.
 
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        The xarray Dataset to filter.
+    
+    mask : str or None, optional
+        The filepath to a shapefile used to mask the dataset.
+    
+    box : list or None, optional
+        A list defining the geographical bounds [xmin, xmax, ymin, ymax].
+    
+    plot_area : bool, optional
+        If True, plots the filtered area using the '_plot_area' function.
+
+    Returns
+    -------
+    xr.Dataset
+        The filtered xarray Dataset.
+
+    Raises
+    ------
+    ValueError
+        If neither a box nor a mask is specified, or both are specified.
+
+    Notes
+    -----
+    This function either applies a geographical mask or selects a subset of the 
+    dataset based on the provided bounding box coordinates.
+    """
     # get coords
     x, y = get_xy_coords(dataset)
 

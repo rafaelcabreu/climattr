@@ -20,7 +20,38 @@ def add_features(
     shapename: Union[None, str] = None, 
     countries: bool = True, 
     **kwargs) -> cartopy.mpl.geoaxes.GeoAxes:
+    """
+    Add geographical features like countries, states, labels, and a custom 
+    shapefile to a Cartopy GeoAxes.
 
+    Parameters
+    ----------
+    ax : cartopy.mpl.geoaxes.GeoAxes
+        The GeoAxes object to which features will be added.
+    
+    extent : list or None, optional
+        The geographical extent to display on the map as [xmin, xmax, ymin, ymax].
+    
+    states : bool, optional
+        Whether to add state/province borders. Default is True.
+    
+    labels : bool, optional
+        Whether to add labels to the map. Default is True.
+    
+    shapename : str or None, optional
+        The path to a shapefile that will be plotted. Default is None.
+    
+    countries : bool, optional
+        Whether to add country borders. Default is True.
+    **kwargs
+        Additional keyword arguments to customize features, like 'country_color' 
+        or 'states_color'.
+
+    Returns
+    -------
+    cartopy.mpl.geoaxes.GeoAxes
+        The GeoAxes object with added features.
+    """
     if countries:
         countries = cfeature.NaturalEarthFeature(
             category='cultural',
@@ -96,14 +127,50 @@ def add_features(
 
 ###############################################################################
 
-def find_nearest(value, data):
+def find_nearest(
+    value: float, 
+    data: np.ndarray) -> int:
+    """
+    Find the index of the nearest value in a numpy array.
+
+    Parameters
+    ----------
+    value : float
+        The value to find in the array.
+    
+    data : np.ndarray
+        The array in which to search for the nearest value.
+
+    Returns
+    -------
+    int
+        The index of the nearest value in the array.
+    """
     idx=(np.abs(data - value)).argmin()
     return idx
 
 ###############################################################################
 
-def get_percentiles_from_ci(cofidence_interval):
+def get_percentiles_from_ci(cofidence_interval: int) -> tuple:
+    """
+    Calculate the lower and upper percentile bounds from a given confidence 
+    interval percentage.
 
+    Parameters
+    ----------
+    confidence_interval : int
+        The confidence interval percentage (e.g., 95 for 95% confidence interval).
+
+    Returns
+    -------
+    tuple
+        A tuple containing the lower and upper percentile values.
+
+    Raises
+    ------
+    ValueError
+        If the confidence interval is not a valid percentage.
+    """
     validate_ci(cofidence_interval)
 
     ci_inf = (100 - cofidence_interval) / 2
@@ -113,8 +180,26 @@ def get_percentiles_from_ci(cofidence_interval):
 
 ###############################################################################
 
-def get_xy_coords(dataset):
+def get_xy_coords(dataset: xr.Dataset) -> tuple:
+    """
+    Extract the coordinate names for latitude and longitude from an xarray Dataset.
 
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        The xarray Dataset from which to extract the latitude and longitude coordinates.
+
+    Returns
+    -------
+    tuple
+        A tuple (x, y) containing the names of the longitude and latitude coordinates.
+
+    Notes
+    -----
+    This function assumes the latitude and longitude coordinates are named using common
+    conventions ('lat', 'latitude', 'y' for latitude and 'lon', 'longitude', 'x' 
+    for longitude).
+    """
     latitudes = ['lat', 'latitude', 'y']
     longitudes = ['lon', 'longitude', 'x']
 
@@ -130,8 +215,31 @@ def get_xy_coords(dataset):
 
 ###############################################################################
 
-def from_cmip6(file_path, **kwargs):
-    """Open a NetCDF file and return an instance of CustomDataset."""
+def from_cmip6(file_path: str, **kwargs) -> xr.Dataset:
+    """
+    Open multiple NetCDF files representing different model ensemble members and
+    combine them into a single xarray Dataset.
+
+    Parameters
+    ----------
+    file_path : str
+        A file path pattern that matches multiple model output files.
+    
+    **kwargs
+        Additional keyword arguments passed to xarray.open_mfdataset.
+
+    Returns
+    -------
+    xr.Dataset
+        A single xarray Dataset containing data from multiple ensemble members,
+        concatenated along a new 'ensemble' dimension.
+
+    Notes
+    -----
+    Assumes that filenames contain ensemble identifiers matching the pattern 
+    'r\d+i\d+p\d+f\d+' and that all files corresponding to a single ensemble 
+    should be combined.
+    """
     ensemble_pattern = r'r\d+i\d+p\d+f\d+'
     ifiles = glob(file_path)
 
@@ -151,8 +259,39 @@ def from_cmip6(file_path, **kwargs):
 
 ###############################################################################
 
-def get_fitted_percentiles(percentiles, params, fit_function):
+def get_fitted_percentiles(
+    percentiles: List, 
+    params: tuple, 
+    fit_function) -> np.ndarray:
+    """
+    Calculate the scores at the given percentiles from a fitted statistical function.
 
+    Parameters
+    ----------
+    percentiles : list of float
+        The percentiles for which the scores are calculated.
+    params : tuple
+        The parameters of the statistical distribution function used to calculate 
+        the scores.
+    fit_function : callable
+        A statistical function that supports the percent point function (ppf).
+
+    Returns
+    -------
+    np.ndarray
+        An array of scores at the specified percentiles.
+
+    Raises
+    ------
+    ValueError
+        If the number of parameters is greater than three or the fitting is 
+        otherwise invalid.
+
+    Notes
+    -----
+    The function handles distributions with up to three parameters (location, 
+    scale, and shape).
+    """
     if len(params) == 2:
         scores = fit_function.ppf(
             percentiles / 100, loc=params[0], scale=params[1]
@@ -162,7 +301,9 @@ def get_fitted_percentiles(percentiles, params, fit_function):
             percentiles / 100, params[0], loc=params[1], scale=params[2]
         )
     else:
-        raise ValueError('Could not fit the given function number of estimated parameters > 3')
+        raise ValueError(
+            'Could not fit the given function number of estimated parameters > 3'
+        )
 
     return scores
 

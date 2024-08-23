@@ -428,9 +428,9 @@ def parser_scaling(subparsers):
     )
     parser.add_argument(
         '--method',
-        choices=['add', 'divide'],
+        choices=['add', 'mult'],
         default='add',
-        help="Method used to scale the data (add or divide)"
+        help="Method used to scale the data (add or mult)"
     )
 
 #####################################################################

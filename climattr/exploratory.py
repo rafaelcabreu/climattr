@@ -17,8 +17,34 @@ def timeseries_plot(
     data: xr.DataArray,
     linear_regression: bool = True,
     highlight_year: int | None = 1999,
-    percentiles: List[int] | None = [1, 5, 90, 95]):
+    percentiles: List[int] | None = [1, 5, 90, 95]) -> None:
+    """
+    Plot a time series on the given axis with optional linear regression, 
+    highlighted year, and percentile lines.
 
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis on which to plot the time series.
+    
+    data : xr.DataArray
+        The data array containing the time series data to be plotted.
+    
+    linear_regression : bool, optional, default = True
+        If True, a linear regression line is plotted on the time series.
+    
+    highlight_year : int or None, optional, default = 1999
+        The specific year to be highlighted on the plot. If None, no year 
+        is highlighted.
+    
+    percentiles : List[int] or None, optional, default = [1, 5, 90, 95]
+        List of percentiles to be plotted as horizontal lines on the graph. 
+        If None, no percentile lines are plotted.
+
+    Returns
+    -------
+    None
+    """
     dataframe = data.to_dataframe().reset_index()
     dataframe.plot(ax=ax, x='time', y=data.name, legend=False)
 
@@ -71,7 +97,39 @@ def rp_plot(
     direction: str = 'descending',
     bootstrap_ci: int = 95,
     boot_size: int = 1000) -> None:
+    """
+    Plot a return period graph on the given axis with optional highlighting 
+    of a specific year and confidence intervals.
 
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis on which to plot the return period.
+    
+    data : xr.DataArray
+        The data array containing the observations to be used for the plot.
+    
+    fit_function : function
+        The function used to fit the return period distribution.
+    
+    highlight_year : int or None, optional, default = 1999
+        The specific year to be highlighted on the plot. If None, no year 
+        is highlighted.
+    
+    direction : str, optional, default = 'descending'
+        The direction of the data ordering for the return period plot. 
+        It can be 'ascending' or 'descending'.
+    
+    bootstrap_ci : int, optional, default = 95
+        The confidence interval percentage for the bootstrap method.
+    
+    boot_size : int, optional, default = 1000
+        The number of bootstrap samples to be used.
+
+    Returns
+    -------
+    None
+    """
     # validation steps
     validate_direction(direction)
     validate_ci(bootstrap_ci)
