@@ -148,7 +148,49 @@ def _rp_plot_data(
     direction: str = 'descending',
     bootstrap_ci: int = 95,
     boot_size: int = 1000) -> List[np.ndarray]:
+    """
+    Plots return period data along with its confidence intervals on a given axis.
 
+    This function generates the return period data from the input data using a specified 
+    fit function. It also calculates and plots the confidence intervals for the return 
+    periods based on bootstrap sampling.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        An array of shape (n_samples,) containing the input data for which return periods 
+        and confidence intervals will be calculated.
+        
+    fit_function : callable
+        A function that fits the input data to a distribution and calculates the 
+        return period.
+        
+    color : str
+        The color to use for plotting the return periods and confidence intervals.
+        
+    label : str
+        The label to use for the plot legend.
+        
+    ax : matplotlib.axes.Axes
+        The matplotlib axes object on which to plot the data.
+        
+    direction : str, optional
+        The direction in which to sort the bootstrap samples. Can be either "ascending" 
+        or "descending" (default).
+        
+    bootstrap_ci : int, optional
+        The confidence interval percentage to use for calculating the return time 
+        confidence intervals. Default is 95.
+        
+    boot_size : int, optional
+        The number of bootstrap samples to generate. Default is 1000.
+
+    Returns
+    -------
+    List[np.ndarray]
+        A list of two arrays containing the lower and upper bounds of the confidence 
+        intervals for each sample.
+    """
     return_period = np.array([_rp_calculation(data, fit_function, i, direction) for i in data])
 
     conf_data = _calc_return_time_confidence(
@@ -216,7 +258,34 @@ def _pr_calculation(
     fit_function, 
     thresh: int,
     direction: str = 'descending') -> float:
+    """
+    Calculates the probability ratio (PR) between two datasets.
 
+    This function fits the input datasets to a specified distribution using the provided 
+    fit function and calculates the probability ratio for a given threshold.
+
+    Parameters
+    ----------
+    all_array : numpy.ndarray
+        An array of shape (n_samples,) containing the "all" scenario data.
+        
+    nat_array : numpy.ndarray
+        An array of shape (n_samples,) containing the "natural" scenario data.
+        
+    fit_function : callable
+        A function that fits the input data to a distribution.
+        
+    thresh : int
+        The threshold value for which the probability ratio will be calculated.
+        
+    direction : str, optional
+        The direction in which to calculate the probability ratio. Default is "descending".
+
+    Returns
+    -------
+    float
+        The calculated probability ratio.
+    """
     params_all = fit_function.fit(all_array)
     params_nat = fit_function.fit(nat_array)
 
@@ -236,7 +305,32 @@ def _far_calculation(
     nat_array: np.ndarray, 
     fit_function, 
     thresh: float) -> float:
+    """
+    Calculates the Fraction of Attributable Risk (FAR) between two datasets.
 
+    This function computes the FAR, which is a measure of the fraction of risk attributable 
+    to a specific factor, by comparing the probability ratio (PR) between the "all" and 
+    "natural" scenario datasets.
+
+    Parameters
+    ----------
+    all_array : numpy.ndarray
+        An array of shape (n_samples,) containing the "all" scenario data.
+        
+    nat_array : numpy.ndarray
+        An array of shape (n_samples,) containing the "natural" scenario data.
+        
+    fit_function : callable
+        A function that fits the input data to a distribution.
+        
+    thresh : float
+        The threshold value for which the FAR will be calculated.
+
+    Returns
+    -------
+    float
+        The calculated Fraction of Attributable Risk (FAR).
+    """
     return 1 - (1 / _pr_calculation(
         all_array, nat_array, fit_function, thresh
     ))
@@ -248,6 +342,31 @@ def _rp_calculation(
     fit_function, 
     thresh: float,
     direction: str = 'descending') -> float:
+    """
+    Calculates the return period for a given threshold in the dataset.
+
+    This function fits the input data to a specified distribution and calculates the 
+    return period for a given threshold value.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        An array of shape (n_samples,) containing the input data.
+        
+    fit_function : callable
+        A function that fits the input data to a distribution.
+        
+    thresh : float
+        The threshold value for which the return period will be calculated.
+        
+    direction : str, optional
+        The direction in which to calculate the return period. Default is "descending".
+
+    Returns
+    -------
+    float
+        The calculated return period for the given threshold.
+    """
 
     params = fit_function.fit(data)
 
@@ -268,7 +387,46 @@ def attribution_metrics(
     direction: str = 'descending',
     bootstrap_ci: int = 95,
     boot_size: int = 1000) -> pd.DataFrame:
+    """
+    Calculate attribution metrics including Probability Ratio (PR), 
+    Fraction of Attributable Risk (FAR), and Return Periods (RP) for 
+    "ALL" (observed) and "NAT" (natural) climate scenarios.
 
+    The metrics are computed using bootstrapped samples to provide 
+    confidence intervals (CI).
+
+    Parameters
+    ----------
+    all : xr.DataArray
+        Data array representing the "ALL" scenario, which includes 
+        human influences on climate.
+
+    nat : xr.DataArray
+        Data array representing the "NAT" scenario, which represents 
+        the natural climate without human influences.
+
+    fit_function : callable 
+        A statistical distribution or fitting function used to model the data.
+        
+    thresh : float
+        The threshold value for which the attribution metrics are calculated.
+
+    direction : str, optional, default = 'descending'
+        The direction in which to assess exceedance of the threshold. 
+        Can be 'descending' or 'ascending'.
+
+    bootstrap_ci : int, optional, default = 95
+        The confidence interval (CI) percentage for bootstrapping.
+
+    boot_size : int, optional, default = 1000
+        The number of bootstrap samples to generate.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the calculated metrics (PR, FAR, RP_ALL, RP_NAT) 
+        along with their confidence intervals (CI).
+    """
     validate_direction(direction)
 
     all_array = all.to_numpy().flatten()
@@ -335,7 +493,35 @@ def histogram_plot(
     nat: xr.DataArray,
     fit_function,
     thresh: float) -> None:
+    """
+    Plot histograms of the "ALL" and "NAT" scenarios along with their 
+    fitted probability density functions (PDFs).
 
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes object on which to draw the histogram.
+    
+    all : xr.DataArray
+        Data array representing the "ALL" scenario, which includes 
+        human influences on climate.
+    
+    nat : xr.DataArray
+        Data array representing the "NAT" scenario, which represents 
+        the natural climate without human influences.
+    
+    fit_function : callable
+        A statistical distribution or fitting function used to model the data.
+    
+    thresh : float
+        The threshold value, which is plotted as a vertical dashed line.
+    
+    Returns
+    -------
+    None
+        This function does not return anything; it modifies the provided 
+        axes object in-place.
+    """
     all_array = all.to_numpy().flatten()
     nat_array = nat.to_numpy().flatten()
 
@@ -367,7 +553,45 @@ def rp_plot(
     direction: str = 'descending',
     bootstrap_ci: int = 95,
     boot_size: int = 1000) -> None:
+    """
+    Plot return periods for the "ALL" and "NAT" scenarios, including 
+    confidence intervals (CI) for the bootstrapped return periods.
 
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes object on which to draw the return period plot.
+    
+    all : xr.DataArray
+        Data array representing the "ALL" scenario, which includes 
+        human influences on climate.
+    
+    nat : xr.DataArray
+        Data array representing the "NAT" scenario, which represents 
+        the natural climate without human influences.
+    
+    fit_function : callable
+        A statistical distribution or fitting function used to model the data.
+    
+    thresh : float
+        The threshold value, which is plotted as a horizontal dashed line.
+    
+    direction : str, optional, default = 'descending'
+        The direction in which to assess exceedance of the threshold. 
+        Can be 'descending' or 'ascending'.
+    
+    bootstrap_ci : int, optional, default = 95
+        The confidence interval (CI) percentage for bootstrapping.
+    
+    boot_size : int, optional, default = 1000
+        The number of bootstrap samples to generate.
+
+    Returns
+    -------
+    None
+        This function does not return anything; it modifies the provided 
+        axes object in-place.
+    """
     # validation steps
     validate_direction(direction)
     validate_ci(bootstrap_ci)
