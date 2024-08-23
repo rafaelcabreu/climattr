@@ -28,9 +28,9 @@ def parser_filter_area(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',
@@ -77,9 +77,9 @@ def parser_filter_time(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',
@@ -116,12 +116,12 @@ def parser_attribution_metrics(subparsers):
     parser.add_argument(
         '-a', '--all', 
         required=True,
-        help="Path to the CMIP6 'all' dataset files"
+        help="Path to the 'all' dataset files"
     )
     parser.add_argument(
         '-n', '--nat', 
         required=True,
-        help="Path to the CMIP6 'nat' dataset files"
+        help="Path to the 'nat' dataset files"
     )
     parser.add_argument(
         '-o', '--ofile',
@@ -130,9 +130,9 @@ def parser_attribution_metrics(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',
@@ -171,12 +171,12 @@ def parser_attribution_plot(subparsers):
     parser.add_argument(
         '-a', '--all', 
         required=True,
-        help="Path to the CMIP6 'all' dataset files"
+        help="Path to the 'all' dataset files"
     )
     parser.add_argument(
         '-n', '--nat', 
         required=True,
-        help="Path to the CMIP6 'nat' dataset files"
+        help="Path to the 'nat' dataset files"
     )
     parser.add_argument(
         '-o', '--ofile',
@@ -185,9 +185,9 @@ def parser_attribution_plot(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',
@@ -226,7 +226,7 @@ def parser_qq_plot(subparsers):
     parser.add_argument(
         '-a', '--all', 
         required=True,
-        help="Path to the CMIP6 'all' dataset files"
+        help="Path to the 'all' dataset files"
     )
     parser.add_argument(
         '--obs', 
@@ -240,9 +240,9 @@ def parser_qq_plot(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',
@@ -269,7 +269,7 @@ def parser_validation_plot(subparsers):
     parser.add_argument(
         '-a', '--all', 
         required=True,
-        help="Path to the CMIP6 'all' dataset files"
+        help="Path to the 'all' dataset files"
     )
     parser.add_argument(
         '--obs', 
@@ -283,9 +283,9 @@ def parser_validation_plot(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',
@@ -321,9 +321,9 @@ def parser_exploratory_plot(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',
@@ -364,9 +364,9 @@ def parser_xclim(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '--xclim-function', 
@@ -405,9 +405,9 @@ def parser_scaling(subparsers):
     )
     parser.add_argument(
         '-d', '--data-source', 
-        choices=['cmip6', 'netcdf'],
+        choices=['multi-file', 'single-file'],
         required=True,
-        help="Specify the data source type: 'cmip6' or 'netcdf'"
+        help="Specify the data source type: 'multi-file' or 'single-file'"
     )
     parser.add_argument(
         '-v', '--variable',

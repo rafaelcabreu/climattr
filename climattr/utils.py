@@ -215,7 +215,7 @@ def get_xy_coords(dataset: xr.Dataset) -> tuple:
 
 ###############################################################################
 
-def from_cmip6(file_path: str, **kwargs) -> xr.Dataset:
+def multiens_netcdf(file_path: str, **kwargs) -> xr.Dataset:
     """
     Open multiple NetCDF files representing different model ensemble members and
     combine them into a single xarray Dataset.

@@ -9,9 +9,9 @@ import climattr as eea
 def _read_file(args, option):
 
     # Load datasets based on the selected data source
-    if args.data_source == 'cmip6':
-        data = eea.utils.from_cmip6(option)
-    elif args.data_source == 'netcdf':
+    if args.data_source == 'multi-file':
+        data = eea.utils.multiens_netcdf(option)
+    elif args.data_source == 'single-file':
         data = xr.open_mfdataset(option)
 
     return data
