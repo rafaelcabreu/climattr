@@ -151,7 +151,14 @@ def rp_plot(
         ]
   
         thresh = dataframe_year[data.name].iloc[0]
-        ax.axhline(thresh, color='k', ls='--')
+        ax.axhline(thresh, color='r', ls='--')
+        ax.text(
+            1, 
+            dataframe_year[data.name], 
+            f'th = {dataframe_year[data.name].iloc[0]:.3f}', 
+            color='r', 
+            va='bottom'
+        ) 
 
         # add return period estimate for OBS
         idx = find_nearest(thresh, data_array)

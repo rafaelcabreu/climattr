@@ -482,18 +482,10 @@ def attribution_metrics(
     )
 
     # fill dataframe with metrics
-    metrics_result.loc['PR', 'value'] = np.median(metrics['PR'])
-    metrics_result.loc['PR', 'ci_inf'] = np.percentile(metrics['PR'], ci_inf)
-    metrics_result.loc['PR', 'ci_sup'] = np.percentile(metrics['PR'], ci_sup)
-    metrics_result.loc['FAR', 'value'] = np.median(metrics['FAR'])
-    metrics_result.loc['FAR', 'ci_inf'] = np.percentile(metrics['FAR'], ci_inf)
-    metrics_result.loc['FAR', 'ci_sup'] = np.percentile(metrics['FAR'], ci_sup)
-    metrics_result.loc['RP_ALL', 'value'] = np.median(metrics['RP_ALL'])
-    metrics_result.loc['RP_ALL', 'ci_inf'] = np.percentile(metrics['RP_ALL'], ci_inf)
-    metrics_result.loc['RP_ALL', 'ci_sup'] = np.percentile(metrics['RP_ALL'], ci_sup)
-    metrics_result.loc['RP_NAT', 'value'] = np.median(metrics['RP_NAT'])
-    metrics_result.loc['RP_NAT', 'ci_inf'] = np.percentile(metrics['RP_NAT'], ci_inf)
-    metrics_result.loc['RP_NAT', 'ci_sup'] = np.percentile(metrics['RP_NAT'], ci_sup)
+    for metric_name in ['PR', 'FAR', 'RP_ALL', 'RP_NAT']:
+        metrics_result.loc[metric_name, 'value'] = np.median(metrics[metric_name])
+        metrics_result.loc[metric_name, 'ci_inf'] = np.percentile(metrics[metric_name], ci_inf)
+        metrics_result.loc[metric_name, 'ci_sup'] = np.percentile(metrics[metric_name], ci_sup)
 
     return metrics_result
         
