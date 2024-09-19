@@ -1,4 +1,5 @@
 import geopandas as gpd
+import rioxarray
 import xarray as xr
 
 import cartopy.crs as ccrs
@@ -44,7 +45,7 @@ def _mask_area(
         shapes,
         transform=dataset.rio.transform(),
         invert=True,
-        out_shape=(dataset.dims[y], dataset.dims[x])
+        out_shape=(dataset.sizes[y], dataset.sizes[x])
     )
 
     # Convert the mask to a DataArray
@@ -87,9 +88,7 @@ def _plot_area(
     -----
     This function uses Cartopy for plotting and requires a specific projection.
     """
-    if not spatial_sel:
-        ValueError("Should first run 'filter_area' before plotting")
-    elif spatial_sel == 'mask':
+    if spatial_sel == 'mask':
         _, ax = plt.subplots(subplot_kw={'projection': ccrs.PlateCarree()})
         add_features(ax, shapename=mask)
         plt.show()
@@ -97,6 +96,8 @@ def _plot_area(
         _, ax = plt.subplots(subplot_kw={'projection': ccrs.PlateCarree()})
         add_features(ax, extent=box)
         plt.show()
+    else:
+        raise ValueError("Invalid spatial selection type. Use 'box' or 'mask'")
 
 #####################################################################
 

@@ -260,7 +260,7 @@ def multiens_netcdf(file_path: str, **kwargs) -> xr.Dataset:
 ###############################################################################
 
 def get_fitted_percentiles(
-    percentiles: List, 
+    percentiles: np.ndarray, 
     params: tuple, 
     fit_function) -> np.ndarray:
     """

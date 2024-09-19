@@ -177,12 +177,12 @@ def method_exploratory_plot(args):
 
     eea.exploratory.timeseries_plot(
         ax1, 
-        data[args.variable].isel(ensemble=0), 
+        data[args.variable], 
         highlight_year=args.year
     )
     eea.exploratory.rp_plot(
         ax2, 
-        data[args.variable].isel(ensemble=0), 
+        data[args.variable], 
         fit_function, 
         highlight_year=args.year
     )

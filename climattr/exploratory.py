@@ -3,6 +3,7 @@ import pandas as pd
 from typing import List
 import xarray as xr
 
+import matplotlib.pyplot as plt
 import scipy.stats
 
 from climattr.attribution import _rp_plot_data
@@ -13,7 +14,7 @@ from climattr.validator import (
 )
 
 def timeseries_plot(
-    ax, 
+    ax: plt.Axes, 
     data: xr.DataArray,
     linear_regression: bool = True,
     highlight_year: int | None = 1999,
