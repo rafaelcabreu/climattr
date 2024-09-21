@@ -316,7 +316,8 @@ def _far_calculation(
     all_array: np.ndarray, 
     nat_array: np.ndarray, 
     fit_function, 
-    thresh: float) -> float:
+    thresh: float,
+    direction: str = 'descending') -> float:
     """
     Calculates the Fraction of Attributable Risk (FAR) between two datasets.
 
@@ -338,13 +339,16 @@ def _far_calculation(
     thresh : float
         The threshold value for which the FAR will be calculated.
 
+    direction : str, optional
+        The direction in which to calculate the return period. Default is "descending".
+
     Returns
     -------
     float
         The calculated Fraction of Attributable Risk (FAR).
     """
     return 1 - (1 / _pr_calculation(
-        all_array, nat_array, fit_function, thresh
+        all_array, nat_array, fit_function, thresh, direction
     ))
 
 ###############################################################################

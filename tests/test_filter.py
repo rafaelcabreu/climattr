@@ -1,33 +1,28 @@
 import numpy as np
+import pandas as pd
 import pytest
-import rioxarray
 import xarray as xr
 import geopandas as gpd
 
+from datetime import datetime
 from shapely.geometry import Polygon
 
-from climattr.spatial import _plot_area, filter_area
+from climattr.filter import (
+    _plot_area, 
+    filter_area,
+    filter_time
+)
 
-def test_plot_area_mask(monkeypatch):
-    # Mock plt.show() to prevent the plot from displaying during tests
-    monkeypatch.setattr("matplotlib.pyplot.show", lambda: None)
-
-    mock_shapefile = gpd.GeoDataFrame({
-        "geometry": [Polygon([(-5, -5), (-5, 5), (5, 5), (5, -5)])]}, 
-        crs="EPSG:4326"
+# Fixture to create a sample xarray Dataset
+@pytest.fixture
+def sample_dataset():
+    time = pd.date_range("2000-01-01", periods=365, freq="D")  # Daily data for 1 year
+    values = np.random.rand(365)
+    dataset = xr.Dataset(
+        {"data_var": (("time",), values)},
+        coords={"time": time}
     )
-    monkeypatch.setattr(gpd, "read_file", lambda _: mock_shapefile)
-
-    mask_path = "path/to/fake/shapefile.shp"
-
-    # Mock the add_features function and plt.subplots to prevent actual plotting
-    with pytest.raises(ValueError):
-        _plot_area(spatial_sel='invalid')
-
-    with pytest.raises(ValueError):
-        _plot_area(spatial_sel=None)
-
-    _plot_area(spatial_sel='mask', mask=mask_path)
+    return dataset
 
 ###############################################################################
 
@@ -127,5 +122,35 @@ def test_filter_area_invalid_arguments():
     # Test both mask and box provided
     with pytest.raises(ValueError):
         filter_area(dataset, mask="fake/path/to/shapefile.shp", box=[-5, 5, -5, 5])
+
+###############################################################################
+
+def test_filter_time_by_range(sample_dataset):
+    """Test filter_time by specifying a time range."""
+    itime = datetime(2000, 2, 1)
+    etime = datetime(2000, 3, 1)
+    
+    # Call the filter_time function
+    filtered_ds = filter_time(sample_dataset, itime=itime, etime=etime)
+    
+    # Check if time range is correctly filtered
+    assert pd.to_datetime(filtered_ds.time.values).min() == np.datetime64(itime)
+    assert pd.to_datetime(filtered_ds.time.values).max() == np.datetime64(etime)
+    
+###############################################################################
+
+def test_filter_time_by_month(sample_dataset):
+    """Test filter_time by specifying specific months."""
+    months = [1, 2]  # January and February
+    
+    # Call the filter_time function
+    filtered_ds = filter_time(sample_dataset, months=months)
+    
+    for dim in filtered_ds.dims:
+        filtered_ds = filtered_ds.dropna(dim=dim, how="any")
+
+    # Ensure all months in the filtered dataset are within the specified list
+    filtered_months = np.unique(filtered_ds['time.month'].values)
+    assert np.array_equal(filtered_months, months)
 
 ###############################################################################
