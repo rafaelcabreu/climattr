@@ -6,6 +6,7 @@ import xarray as xr
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from cartopy.io.shapereader import Reader
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from glob import glob
 from typing import Union, List
@@ -105,9 +106,15 @@ def add_features(
         ax.set_ylim(extent[2], extent[3])
 
     if shapename:
-        shapefile = gpd.read_file(shapename)
-        shapefile.plot(ax=ax)
-
+        shp = Reader(shapename)
+        # check if the user specified a color for the shapefiles
+        ax.add_geometries(
+            shp.geometries(), 
+            ccrs.PlateCarree(), 
+            facecolor='none',
+            edgecolor='k'
+        )
+        
     if labels:
         gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, color='none')
         gl.xformatter = LONGITUDE_FORMATTER
@@ -306,5 +313,16 @@ def get_fitted_percentiles(
         )
 
     return scores
+
+###############################################################################
+
+def reassign_longitude(
+    dataset: xr.Dataset, 
+    x: str = 'lon') -> xr.Dataset:
+
+    params = {x: (((dataset[x] + 180) % 360) - 180)}
+    dataset = dataset.assign_coords(**params).sortby(x)
+
+    return dataset
 
 ###############################################################################

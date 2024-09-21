@@ -23,10 +23,10 @@ def method_filter_time(args):
     data = _read_file(args, args.ifile)
 
     if args.itime and args.etime:
-        data = data.sel(time=slice(args.itime, args.etime))
+        data = eea.filter.filter_time(itime=args.itime, etime=args.etime)
     elif args.months:
         months = [int(month) for month in args.months]
-        data = data.where(data['time.month'].isin(months))
+        data = eea.filter.filter_time(months=months)
     else:
         raise ValueError('You should either add months argument of itime,etime')
 
@@ -43,9 +43,9 @@ def method_filter_area(args):
 
     if args.box:
         box = [float(coord) for coord in args.box]
-        data = eea.spatial.filter_area(data, box=box)
+        data = eea.filter.filter_area(data, box=box)
     elif args.mask:
-        data = eea.spatial.filter_area(data, mask=args.mask)
+        data = eea.filter.filter_area(data, mask=args.mask)
     else:
         raise ValueError('You should add either a box or a mask argument')
 
@@ -127,7 +127,6 @@ def method_qq_plot(args):
 
     fig, [ax1, ax2] = plt.subplots(1, 2, figsize=(8,4))
 
-    #eea.validation.qq_plot(ax, nat['tas'], all['tas'])
     eea.validation.qq_plot_theoretical(ax1, obs_data[args.variable], fit_function)
     eea.validation.qq_plot_theoretical(ax2, all_data[args.variable], fit_function)
 
@@ -201,27 +200,14 @@ def method_xclim(args):
 
     data = _read_file(args, args.ifile)
 
-    with xclim.set_options(
-        check_missing="pct",
-        missing_options={"pct": dict(tolerance=1)},
-        cf_compliance="log",
-        data_validation='log'
-    ):
+    indice = eea.indice.xclim_indice(
+        data, args.xclim_function, **args.kwargs
+    )
 
-        xclim_function = getattr(
-            xclim.indicators.atmos, 
-            args.xclim_function
-        )
-
-        indice = xclim_function(
-            **args.kwargs,
-            ds=data
-        )
-
-        indice.to_netcdf(
-            args.ofile, 
-            encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
-        )
+    indice.to_netcdf(
+        args.ofile, 
+        encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
+    )
 
 #####################################################################
 

@@ -1,64 +1,17 @@
 import geopandas as gpd
-import rioxarray
 import xarray as xr
 
 import cartopy.crs as ccrs
+from datetime import datetime
 import matplotlib.pyplot as plt
-from rasterio.features import geometry_mask
 from typing import Union, List
+import salem
 
 from climattr.utils import (
     add_features,
-    get_xy_coords
+    get_xy_coords,
+    reassign_longitude
 )
-
-def _mask_area(
-    dataset: xr.Dataset, 
-    shapefile: gpd.GeoDataFrame) -> xr.Dataset:
-    """
-    Apply a geographical mask from a shapefile to a given xarray Dataset.
-
-    Parameters
-    ----------
-    dataset : xr.Dataset
-        The xarray Dataset to be masked.
-    
-    shapefile : gpd.GeoDataFrame
-        A GeoDataFrame containing the geometries to be used for masking the dataset.
-
-    Returns
-    -------
-    xr.Dataset
-        The masked xarray Dataset where data outside the geometries are set to NaN.
-
-    Notes
-    -----
-    This function assumes that the dataset includes latitude and longitude dimensions.
-    """
-    # get coords
-    x, y = get_xy_coords(dataset)
-
-    shapes = [geom for geom in shapefile.geometry]
-
-    # Create a mask with the same dimensions as the NetCDF data
-    mask = geometry_mask(
-        shapes,
-        transform=dataset.rio.transform(),
-        invert=True,
-        out_shape=(dataset.sizes[y], dataset.sizes[x])
-    )
-
-    # Convert the mask to a DataArray
-    mask_da = xr.DataArray(
-        mask, 
-        coords=[dataset[y], dataset[x]], 
-        dims=[y, x]
-    )
-
-    # Apply the mask to your dataset
-    return dataset.where(mask_da)
-
-#####################################################################
 
 def _plot_area(
     spatial_sel: str,
@@ -105,7 +58,8 @@ def filter_area(
     dataset: xr.Dataset, 
     mask: None | str = None,
     box: None | List = None,
-    plot_area: bool = False
+    plot_area: bool = False,
+    reassign_lon: bool = True
     ):
     """
     Filter the dataset based on a geographical mask or bounding box and optionally 
@@ -145,6 +99,9 @@ def filter_area(
 
     # order data to ensure lat and lon coords will be
     # correclty ordered before filtering the data
+    if reassign_lon:
+        dataset = reassign_longitude(dataset, x)
+    
     dataset = dataset.sortby([x, y])
 
     # raise error if no option is selected
@@ -163,12 +120,58 @@ def filter_area(
     if mask:
         spatial_sel = 'mask'
         shapefile = gpd.read_file(mask)
-        instance = _mask_area(dataset, shapefile) 
+
+        # filter and subset dataset using shapefile with salem package
+        instance = dataset.salem.roi(shape=shapefile) 
+        instance = instance.salem.subset(shape=shapefile)
 
     # plot to view filtered area
     if plot_area:
-        _plot_area(spatial_sel, box, mask)
+        _plot_area(spatial_sel, box=box, mask=mask)
 
     return instance
+
+#####################################################################
+
+def filter_time(
+    dataset: xr.Dataset,
+    itime: Union[None, datetime] = None, 
+    etime: Union[None, datetime] = None, 
+    months: Union[None, List] = None) -> xr.Dataset:
+    """
+    Filters an xarray Dataset by time, with options to specify a time range 
+    and/or specific months.
+
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        The input xarray dataset that contains a 'time' dimension. This dataset 
+        will be filtered based on the provided time range and/or months.
+    
+    itime : datetime or None, optional
+        The starting date (inclusive) for the filtering. If set to None, no 
+        lower bound on time will be applied. The default is None.
+    
+    etime : datetime or None, optional
+        The ending date (inclusive) for the filtering. If set to None, no 
+        upper bound on time will be applied. The default is None.
+    
+    months : list or None, optional
+        A list of integers representing the months (e.g., [1, 2, 12] for January, 
+        February, and December) to filter by. If set to None, no month-based 
+        filtering will be applied. The default is None.
+    
+    Returns
+    -------
+    xr.Dataset
+        The filtered xarray Dataset, based on the provided time range and/or 
+        specific months.
+    """
+    if itime and etime:
+        dataset = dataset.sel(time=slice(itime, etime))
+    if months:
+        dataset = dataset.where(dataset['time.month'].isin(months))
+
+    return dataset
 
 #####################################################################

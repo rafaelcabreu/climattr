@@ -4,46 +4,9 @@ import rioxarray
 import xarray as xr
 import geopandas as gpd
 
-from shapely.geometry import box, Polygon
+from shapely.geometry import Polygon
 
-from climattr.spatial import _mask_area, _plot_area, filter_area
-
-
-def test_mask_area():
-    # Create a sample dataset with lat/lon coordinates
-    lat = np.linspace(-10, 10, 20)
-    lon = np.linspace(-20, 20, 40)
-    time = np.arange(0, 10)
-    data = np.random.rand(len(time), len(lat), len(lon))
-
-    dataset = xr.Dataset(
-        {
-            "variable": (["time", "lat", "lon"], data)
-        },
-        coords={
-            "time": time,
-            "lat": lat,
-            "lon": lon,
-        }
-    )
-
-    dataset = dataset.rio.write_crs("EPSG:4674")
-    dataset.rio.set_spatial_dims("lon", "lat", inplace=True)
-
-    # Create a simple square shapefile (GeoDataFrame)
-    geom = [box(-5, -5, 5, 5)]
-    shapefile = gpd.GeoDataFrame({"geometry": geom}, crs="EPSG:4326")
-
-    # Apply mask
-    masked_dataset = _mask_area(dataset, shapefile)
-
-    # Check if the mask was applied correctly
-    mask_area = (dataset["lat"] >= -5) & (dataset["lat"] <= 5) & \
-        (dataset["lon"] >= -5) & (dataset["lon"] <= 5)
-    expected_data = np.where(mask_area, dataset["variable"], np.nan)
-    assert np.allclose(masked_dataset["variable"].values, expected_data, equal_nan=True)
-
-###############################################################################
+from climattr.spatial import _plot_area, filter_area
 
 def test_plot_area_mask(monkeypatch):
     # Mock plt.show() to prevent the plot from displaying during tests
