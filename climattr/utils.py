@@ -326,3 +326,75 @@ def reassign_longitude(
     return dataset
 
 ###############################################################################
+
+def regrid_dataset(
+    dataset: Union[xr.Dataset, xr.DataArray],
+    dataset_grid: Union[None, xr.Dataset, xr.DataArray] = None,
+    lons: Union[None, np.ndarray] = None,
+    lats: Union[None, np.ndarray] = None) -> Union[xr.Dataset, xr.DataArray]:
+    """
+    Regrids a given xarray Dataset or DataArray based on a target grid (either 
+    from another dataset or specified lat/lon coordinates).
+
+    Parameters
+    ----------
+    dataset : Union[xr.Dataset, xr.DataArray]
+        The dataset or data array to be regridded. It must have x and y 
+        coordinates that can be interpolated.
+        
+    dataset_grid : Union[None, xr.Dataset, xr.DataArray], optional
+        An optional dataset or data array that provides the grid onto which the 
+        `dataset` should be interpolated. If provided, the regridding will be 
+        based on the coordinates (x, y) from this dataset.
+        
+    lons : Union[None, np.ndarray], optional
+        A NumPy array of longitude values to use as the target grid. This option 
+        should be used if `dataset_grid` is not provided.
+        
+    lats : Union[None, np.ndarray], optional
+        A NumPy array of latitude values to use as the target grid. This option 
+        should be used if `dataset_grid` is not provided.
+        
+    Returns
+    -------
+    Union[xr.Dataset, xr.DataArray]
+        The regridded dataset or data array. The returned object will have the 
+        same type as the input `dataset`.
+        
+    Raises
+    ------
+    ValueError
+        Raised if neither a target dataset (`dataset_grid`) nor latitude/longitude 
+        arrays (`lons`, `lats`) are provided.
+        Raised if both a target dataset (`dataset_grid`) and latitude/longitude 
+        arrays (`lons`, `lats`) are provided simultaneously.
+        
+    Examples
+    --------
+    Regrid a dataset using lat/lon coordinates:
+    
+    >>> regridded = regrid_dataset(dataset, lons=new_lons, lats=new_lats)
+    
+    Regrid a dataset using another dataset's grid:
+    
+    >>> regridded = regrid_dataset(dataset, dataset_grid=target_dataset)
+    """
+    # raise error if no option is selected
+    if not dataset_regrided and not lons and not lats:
+        raise ValueError('You should add either a dataset to regrid or lat,lon coordinates')
+    elif dataset_grid and lons and lats:
+        raise ValueError('You should choose either a dataset to regrid or lat,lon coordinates')
+
+    x, y = get_xy_coords(dataset)
+    x_grid, y_grid = get_xy_coords(dataset_grid)
+
+    if dataset_grid:
+        dataset_regrided = xr.interp(
+            **{x: dataset_grid[x_grid], y: dataset_grid[y_grid]}
+        )
+    else:
+        dataset_regrided = xr.interp(**{x: lons, y: lats})
+
+    return dataset_regrided
+
+###############################################################################
