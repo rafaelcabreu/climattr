@@ -10,9 +10,9 @@ def _read_file(args, option):
 
     # Load datasets based on the selected data source
     if args.data_source == 'multi-file':
-        data = eea.utils.multiens_netcdf(option)
+        data = eea.utils.multiens_netcdf(option, chunks={'time': 100})
     elif args.data_source == 'single-file':
-        data = xr.open_mfdataset(option)
+        data = xr.open_mfdataset(option, chunks={'time': 100})
 
     return data
 
@@ -23,10 +23,10 @@ def method_filter_time(args):
     data = _read_file(args, args.ifile)
 
     if args.itime and args.etime:
-        data = eea.filter.filter_time(itime=args.itime, etime=args.etime)
-    elif args.months:
+        data = eea.filter.filter_time(data, itime=args.itime, etime=args.etime)
+    if args.months:
         months = [int(month) for month in args.months]
-        data = eea.filter.filter_time(months=months)
+        data = eea.filter.filter_time(data, months=months)
     else:
         raise ValueError('You should either add months argument of itime,etime')
 
@@ -50,7 +50,9 @@ def method_filter_area(args):
         raise ValueError('You should add either a box or a mask argument')
 
     if args.reduce:
-        data = getattr(data, args.reduce)(dim=eea.utils.get_xy_coords(data))
+        data = getattr(data, args.reduce)(
+            dim=eea.utils.get_xy_coords(data), keep_attrs=True
+        )
     data[[args.variable]].to_netcdf(
         args.ofile, 
         encoding={'time':{'units':'days since 1850-01-01', 'dtype': 'float64'}}
@@ -217,8 +219,8 @@ def method_scaling(args):
     clim = _read_file(args, args.clim)
 
     scaled_data = eea.correction.scaling(
-        data[args.var],
-        clim[args.var],
+        data[args.variable],
+        clim[args.variable],
         args.idate,
         args.edate,
         method = args.method
