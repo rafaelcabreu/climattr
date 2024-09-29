@@ -8,7 +8,9 @@ def geolocate_dataframe(
     dataframe: pd.DataFrame, 
     location: gpd.GeoDataFrame, 
     dataframe_column: str = 'city_name', 
-    location_column: str = 'NM_MUN') -> gpd.GeoDataFrame:
+    location_column: str = 'NM_MUN',
+    cross_join_date: bool = False,
+    date: str = 'date') -> gpd.GeoDataFrame:
     """
     Geolocates a Pandas DataFrame by joining it with a GeoPandas GeoDataFrame, 
     matching based on city names or other spatial feature, and returns a 
@@ -85,10 +87,21 @@ def geolocate_dataframe(
         lambda x: str(unidecode(x)).upper()
     )
 
-    # join with impacts dataset
-    location_dataframe = location.set_index([dataframe_column]).join(
-        dataframe.set_index([dataframe_column]), how='left'
-    ).reset_index()
+    if cross_join_date:
+        # first we need to cross join with dates
+        location = location.assign(key=0).set_index('key').join(
+            pd.DataFrame({date: dataframe[date].unique()}).assign(key=0).set_index('key')
+        ).reset_index()
+
+        # join with dengue dataset
+        location_dataframe = location.set_index([dataframe_column, date]).join(
+            dataframe.set_index([dataframe_column, date]), how='left'
+        ).reset_index()
+    else:
+        # join with impacts dataset
+        location_dataframe = location.set_index([dataframe_column]).join(
+            dataframe.set_index([dataframe_column]), how='left'
+        ).reset_index()
 
     location_dataframe = location_dataframe[
         list(dataframe.columns) + ['geometry']
