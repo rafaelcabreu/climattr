@@ -149,7 +149,7 @@ def parser_attribution_metrics(subparsers):
     )
     parser.add_argument(
         '-t', '--thresh',
-        type=int,
+        type=float,
         default=301,
         help="Threshold value for the attribution metrics (default: 301)"
     )
@@ -204,7 +204,7 @@ def parser_attribution_plot(subparsers):
     )
     parser.add_argument(
         '-t', '--thresh',
-        type=int,
+        type=float,
         default=301,
         help="Threshold value for the attribution metrics (default: 301)"
     )

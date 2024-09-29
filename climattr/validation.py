@@ -44,7 +44,7 @@ def histogram_plot(
     ax.hist(all_array, color='C0', alpha=0.5, density=True, label='ALL')
     ax.hist(obs_array, color='k', alpha=0.5, density=True, label='OBS')
 
-    percentiles = np.linspace(0, 100, 700)
+    percentiles = np.linspace(0.01, 99.9, 700)
     x_all = get_fitted_percentiles(percentiles, params_all, fit_function)
     x_obs = get_fitted_percentiles(percentiles, params_obs, fit_function)
 

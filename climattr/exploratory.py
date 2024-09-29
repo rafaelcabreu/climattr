@@ -82,11 +82,11 @@ def timeseries_plot(
         dataframe_year.plot(ax=ax, x='time', y=data.name, legend=False, marker='o', color='r')
         ax.text(
             dataframe_year['time'].iloc[0], 
-            dataframe_year[data.name], 
+            dataframe_year[data.name].values[0], 
             highlight_year, 
             color='r', 
             va='bottom'
-        )        
+        )       
 
 #####################################################################
 
@@ -155,7 +155,7 @@ def rp_plot(
         ax.axhline(thresh, color='r', ls='--')
         ax.text(
             1, 
-            dataframe_year[data.name], 
+            dataframe_year[data.name].iloc[0], 
             f'th = {dataframe_year[data.name].iloc[0]:.3f}', 
             color='r', 
             va='bottom'

@@ -540,7 +540,7 @@ def histogram_plot(
     ax.hist(nat_array, color='C1', alpha=0.5, density=True, label='NAT')
 
     # fit the requested distribution and plot it as a line
-    percentiles = np.linspace(0, 100, 700)
+    percentiles = np.linspace(0.01, 99.9, 700)
     x_all = get_fitted_percentiles(percentiles, params_all, fit_function)
     x_nat = get_fitted_percentiles(percentiles, params_nat, fit_function)
 
