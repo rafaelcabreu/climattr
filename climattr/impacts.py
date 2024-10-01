@@ -113,6 +113,7 @@ def geolocate_dataframe(
 
 def aggregate_time_dataframe(
     dataframe: pd.DataFrame, 
+    column: str,
     method: str, 
     date: str = 'date', 
     freq: str = 'YE', 
@@ -128,6 +129,9 @@ def aggregate_time_dataframe(
     dataframe : pd.DataFrame
         The input Pandas DataFrame containing the data to be aggregated. The DataFrame 
         should include a date column and, optionally, a location column.
+
+    column : str
+        Name of the column in the dataframe that will be aggregated
     
     method : str
         The aggregation method to be applied, such as 'mean', 'sum', 'min', 'max', 
@@ -190,11 +194,11 @@ def aggregate_time_dataframe(
     if keep_location:
         aggregated_dataframe = getattr(
             dataframe.groupby(location_column).resample(freq, on=date), method
-        )().drop(location_column, axis=1).reset_index()
+        )().drop(location_column, axis=1)[column].reset_index()
     else:
         aggregated_dataframe = getattr(
             dataframe.resample(freq, on=date), method
-        )().reset_index() 
+        )()[column].reset_index() 
 
     return aggregated_dataframe
 
@@ -203,6 +207,7 @@ def aggregate_time_dataframe(
 def aggregate_spatial_dataframe(
     geodataframe: gpd.GeoDataFrame, 
     location: gpd.GeoDataFrame,
+    column: str,
     method: str,
     location_column: str = 'NM_MESO',
     keep_date: bool = True,
@@ -227,6 +232,9 @@ def aggregate_spatial_dataframe(
         The GeoDataFrame containing location boundaries (e.g., regions, municipalities) 
         to spatially join with the input `geodataframe`. It should have a geometry 
         column and a location identifier column.
+
+    column : str
+        Name of the column in the dataframe that will be aggregated
     
     method : str
         The aggregation method to be applied, such as 'mean', 'sum', 'min', 'max', 
@@ -280,8 +288,9 @@ def aggregate_spatial_dataframe(
     # spatial join geodataframe with location based on the geometry from gdf
     # that are within location
     geodataframe_location = gpd.sjoin(
-        geodataframe, location[[location_column, 'geometry']], predicate='within'
-    ).drop('index_right', axis=1)
+        geodataframe, location[[location_column, 'geometry']], predicate='within',
+        how='right'
+    )
 
     if keep_date:
         aggregators = [location_column, date_column]
@@ -289,9 +298,17 @@ def aggregate_spatial_dataframe(
         aggregators = [location_column]
 
     geodataframe_location = getattr(
-        geodataframe_location.groupby(aggregators), method
-    )()
+        geodataframe_location[aggregators + [column]].groupby(aggregators), method
+    )().reset_index()
 
-    return geodataframe_location
+    return geolocate_dataframe(
+        geodataframe_location,
+        location,
+        dataframe_column=location_column,
+        location_column=location_column,
+        cross_join_date=True if keep_date else False,
+        date=date_column
+    )
 
 #####################################################################
+
