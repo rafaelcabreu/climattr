@@ -5,3 +5,4 @@ from climattr import filter
 from climattr import validation
 from climattr import utils
 from climattr import indice
+from climattr import impacts
