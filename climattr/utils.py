@@ -1,6 +1,7 @@
 import numpy as np
-import geopandas as gpd
+import pandas as pd
 import re
+import requests
 import xarray as xr
 
 import cartopy
@@ -8,6 +9,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.io.shapereader import Reader
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from datetime import datetime
 from glob import glob
 from typing import Union, List
 
@@ -396,5 +398,94 @@ def regrid_dataset(
         dataset_regrided = xr.interp(**{x: lons, y: lats})
 
     return dataset_regrided
+
+###############################################################################
+
+def calculate_anomaly(
+    dataframe: pd.DataFrame, 
+    itime: datetime = '1981-01-01', 
+    etime: datetime = '2010-12-31') -> pd.DataFrame:
+
+    dataframe_anomaly = dataframe.groupby(dataframe.index.month).apply(
+        lambda x: x - dataframe[itime:etime].mean()
+    )
+
+    # rename because of duplicated names
+    dataframe_anomaly.index.names = ['month', 'time']
+
+    # remove unecessary column
+    dataframe_anomaly = dataframe_anomaly.reset_index().drop('month', axis=1)
+    dataframe_anomaly = dataframe_anomaly.set_index('time')
+
+    return dataframe_anomaly
+
+###############################################################################
+
+def get_global_temperature_anomaly(
+    model: str,
+    scenario: str,
+    itime: Union[str, datetime] = '1981-01-01', 
+    etime: Union[str, datetime] = '2010-12-31') -> pd.DataFrame:
+    """
+    Fetches and processes the global temperature anomaly from a CMIP6 model 
+    using the Climate Explorer API.
+
+    Parameters:
+    -----------
+    model : str
+        The name of the climate model (e.g., 'CESM2', 'MPI-ESM1-2-HR').
+    scenario : str
+        The emission scenario (e.g., 'ssp126', 'ssp585').
+    itime : Union[str, datetime], optional
+        The start date for the anomaly calculation (default is '1981-01-01').
+    etime : Union[str, datetime], optional
+        The end date for the anomaly calculation (default is '2010-12-31').
+
+    Returns:
+    --------
+    pd.DataFrame
+        A DataFrame containing the monthly global temperature anomalies, with 
+        the time index as the end of each month.
+
+    Notes:
+    ------
+    The function fetches global surface temperature data from the Climate 
+    Explorer's KNMI CMIP6 models repository.
+    It processes the data, reshapes it, and computes the temperature anomaly 
+    for the specified time period.
+    """
+    baseurl = 'https://climexp.knmi.nl/CMIP6/Tglobal/'
+
+    url = f'{baseurl}/global_tas_mon_{model}_{scenario}_ave.dat'
+
+    # get global average from the models using the climexp site and raise error
+    # if not found
+    response = requests.get(url)
+    response.raise_for_status()
+
+    # get rid of all the header before loading to the dataframe
+    lines = response.text.split('\n')
+    data = []
+    for line in lines:
+        if not line.startswith('#'):
+            data.append(line.split())
+
+    dataframe = pd.DataFrame(data).dropna()
+
+    # convert month columns into lines and create time column
+    dataframe = dataframe.melt(id_vars=0, var_name='time', value_name='tas')
+    dataframe['time'] = pd.to_datetime(
+        dataframe[0].astype(str) + '-' + dataframe['time'].astype(str) + '-1'
+    )
+    dataframe = dataframe.drop(0, axis=1)
+
+    # return the labels in the end of the month
+    dataframe['tas'] = dataframe['tas'].astype(float)
+    dataframe = dataframe.resample('ME', on='time').mean()
+    
+    dataframe = calculate_anomaly(dataframe, itime=itime, etime=etime)
+    dataframe = dataframe.sort_index()
+
+    return dataframe
 
 ###############################################################################

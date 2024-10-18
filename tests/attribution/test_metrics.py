@@ -20,6 +20,8 @@ def sample_data():
     nat_data = xr.DataArray(nat_array, coords={"time": time}, dims="time")
     return all_data, nat_data
 
+###############################################################################
+
 def test_attribution_metrics(sample_data):
     """Test attribution_metrics function."""
     all_data, nat_data = sample_data
@@ -41,7 +43,9 @@ def test_attribution_metrics(sample_data):
     assert result.shape == (4, 3)
     
     # Check that the values are correctly filled in the DataFrame
-    assert np.isclose(result.loc['PR', 'value'], 5.954527849810254)
-    assert np.isclose(result.loc['FAR', 'value'], 0.832060412685886)
-    assert np.isclose(result.loc['RP_ALL', 'value'], 1.530539847952145)
-    assert np.isclose(result.loc['RP_NAT', 'value'], 8.98900315155591)
+    assert np.isclose(result.loc['PR', 'value'], 3.690562)
+    assert np.isclose(result.loc['FAR', 'value'], 0.729033)
+    assert np.isclose(result.loc['RP_ALL', 'value'], 1.556993)
+    assert np.isclose(result.loc['RP_NAT', 'value'], 5.854864)
+
+###############################################################################

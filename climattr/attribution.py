@@ -2,12 +2,19 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from typing import List
+from datetime import datetime
+import statsmodels.api as sm
+from typing import List, Union, Tuple
 
+from climattr.minimization.fit import (
+    fit_data,
+    extrapolate_data
+)
 from climattr.utils import (
     find_nearest,
     get_percentiles_from_ci,
-    get_fitted_percentiles
+    get_fitted_percentiles,
+    get_global_temperature_anomaly
 )
 from climattr.validator import (
     validate_direction, 
@@ -641,4 +648,88 @@ def rp_plot(
 
     ax.legend()
 
-###############################################################################
+############################################################################### 
+    
+def fit_wwa_data(
+    all: xr.DataArray, 
+    global_tas: pd.DataFrame,
+    fit_function_name: str,
+    all_date: Union[datetime, str] = '2015-11-30',
+    nat_date: Union[datetime, str] = '1900-11-30',
+    strategy: str = 'linear',
+    verbose: bool = True) -> Tuple[xr.DataArray, xr.DataArray]:
+    """
+    World Weather Attribution method to select the natural scenario based on 
+    the relation between the global mean temperature and variable of interest by
+    fitting a statistical model to climate data and extrapolates future data 
+    for specific dates using MLE.
+
+    Link for the method paper: https://ascmo.copernicus.org/articles/6/177/2020/
+
+    Parameters:
+    -----------
+    all : xr.DataArray
+        Climate data represented as an xarray DataArray, which will be fitted and 
+        used for extrapolation.
+    global_tas : pd.DataFrame
+        A DataFrame containing global temperature anomalies (tas) with a datetime 
+        index.
+    fit_function_name : str
+        The name of the distribution to use for fitting the data ('genextreme', 
+        'norm', 'gamma').
+    all_date : Union[str, datetime], optional
+        The date for which to extrapolate 'all' data (default is '2015-11-30').
+    nat_date : Union[str, datetime], optional
+        The date for which to extrapolate 'nat' data (default is '1900-11-30').
+    strategy : str, optional
+        The strategy to use ('linear' or 'exponential') for calculating the 
+        estimated parameters (default is 'linear').
+
+    Returns:
+    --------
+    Tuple[xr.DataArray, xr.DataArray]
+        Two xarray DataArray objects:
+        - The extrapolated 'all' climate data for the specified `all_date`.
+        - The extrapolated 'natural' climate data for the specified `nat_date`.
+
+    Notes:
+    ------
+    This function fits the provided climate data (`all`) to a statistical model 
+    using maximum likelihood estimation (MLE).
+    It then extrapolates data for the specified dates (`all_date` and `nat_date`) 
+    based on the fitted parameters and global temperature anomalies (`global_tas`).
+    The `tas` values in the `global_tas` DataFrame are smoothed using a 4-point 
+    rolling mean.
+    """
+    all_dataframe = all.to_dataframe().reset_index()
+
+    global_tas['tas'] = global_tas['tas'].rolling(4, center=True).mean()
+    dataframe = all_dataframe.set_index('time').join(global_tas).dropna()
+
+    # fit function using MLE
+    params = fit_data(
+        dataframe[all.name], dataframe['tas'], fit_function_name, strategy, verbose=verbose
+    )
+
+    # extrapolate data to the selected dates
+    nat_wwa = extrapolate_data(global_tas, params, nat_date, fit_function_name, strategy)
+    all_wwa = extrapolate_data(global_tas, params, all_date, fit_function_name, strategy)
+
+    all_wwa = xr.DataArray(all_wwa, name=all.name)
+    nat_wwa = xr.DataArray(nat_wwa, name=all.name)
+
+    return params, all_wwa, nat_wwa
+
+############################################################################### 
+
+
+if __name__ == '__main__':
+
+    ds = xr.open_dataset('all3.nc')
+
+    global_tas = get_global_temperature_anomaly('IPSL-CM6A-LR', 'ssp585')
+    global_tas = global_tas.resample('YE-NOV').mean()
+
+    from scipy import stats
+
+    fit_wwa_data(ds['tx_max'], global_tas, 'norm' , strategy='exponential')
