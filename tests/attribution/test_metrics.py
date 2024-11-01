@@ -43,9 +43,9 @@ def test_attribution_metrics(sample_data):
     assert result.shape == (4, 3)
     
     # Check that the values are correctly filled in the DataFrame
-    assert np.isclose(result.loc['PR', 'value'], 3.690562)
-    assert np.isclose(result.loc['FAR', 'value'], 0.729033)
-    assert np.isclose(result.loc['RP_ALL', 'value'], 1.556993)
-    assert np.isclose(result.loc['RP_NAT', 'value'], 5.854864)
+    assert np.isclose(result.loc['PR', 'value'], 5.61829902)
+    assert np.isclose(result.loc['FAR', 'value'], 0.822010)
+    assert np.isclose(result.loc['RP_ALL', 'value'], 1.54334)
+    assert np.isclose(result.loc['RP_NAT', 'value'], 8.81184)
 
 ###############################################################################

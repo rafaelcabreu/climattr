@@ -721,15 +721,3 @@ def fit_wwa_data(
     return params, all_wwa, nat_wwa
 
 ############################################################################### 
-
-
-if __name__ == '__main__':
-
-    ds = xr.open_dataset('all3.nc')
-
-    global_tas = get_global_temperature_anomaly('IPSL-CM6A-LR', 'ssp585')
-    global_tas = global_tas.resample('YE-NOV').mean()
-
-    from scipy import stats
-
-    fit_wwa_data(ds['tx_max'], global_tas, 'norm' , strategy='exponential')
