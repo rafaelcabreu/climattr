@@ -64,10 +64,10 @@ def timeseries_plot(
         ).to_frame()
 
         for _, row in quantiles.iterrows():
-            ax.axhline(row['tx_max'], color='r', ls='--')
+            ax.axhline(row[data.name], color='r', ls='--')
             ax.text(
                 dataframe['time'].min(), 
-                row['tx_max'], 
+                row[data.name], 
                 f'{int(_ * 100):02d}%', 
                 color='r', 
                 va='bottom'
