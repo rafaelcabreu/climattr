@@ -10,7 +10,7 @@ def test_validate_ci_valid():
     # Test valid CI values
     validate_ci(1)
     validate_ci(50)
-    validate_ci(100)
+    validate_ci(99)
 
 ###############################################################################
 
@@ -19,7 +19,7 @@ def test_validate_ci_invalid():
     with pytest.raises(ValueError):
         validate_ci(0)  # Below range
     with pytest.raises(ValueError):
-        validate_ci(101)  # Above range
+        validate_ci(100)  # Above range
     with pytest.raises(ValueError):
         validate_ci('50')  # Not an integer
     with pytest.raises(ValueError):

@@ -155,7 +155,7 @@ def _rp_plot_data(
     label: str,
     ax,
     direction: str = 'descending',
-    bootstrap_ci: int = 95,
+    bootstrap_ci: int | None = 95,
     boot_size: int = 1000) -> List[np.ndarray]:
     """
     Plots return period data along with its confidence intervals on a given axis.
@@ -200,21 +200,10 @@ def _rp_plot_data(
         A list of two arrays containing the lower and upper bounds of the confidence 
         intervals for each sample.
     """
-    return_period = np.array([
-        _rp_calculation(data, fit_function, i, direction) for i in data]
-    )
+    params = fit_function.fit(data)
 
-    conf_data = _calc_return_time_confidence(
-        data, 
-        direction=direction, 
-        boot_size=boot_size, 
-        bootstrap_ci=bootstrap_ci
-    )
-    conf_rp = _calc_return_time_confidence(
-        return_period,
-        direction='descending',
-        boot_size=boot_size,
-        bootstrap_ci=bootstrap_ci
+    return_period = np.array([
+        _rp_calculation(data, fit_function, i, direction, params) for i in data]
     )
 
     ax.semilogx(
@@ -238,26 +227,45 @@ def _rp_plot_data(
 
     ax.semilogx(fitted_rp, x, color=color, lw=2)
 
-    conf_data_inf = conf_data[0,:].squeeze()
-    conf_data_sup = conf_data[1,:].squeeze()
+    # if bootstrap confidence interval is provided then we calculate 
+    # and plot the ci
+    if bootstrap_ci:
+        conf_data = _calc_return_time_confidence(
+            data, 
+            direction=direction, 
+            boot_size=boot_size, 
+            bootstrap_ci=bootstrap_ci
+        )
+        conf_rp = _calc_return_time_confidence(
+            return_period,
+            direction='descending',
+            boot_size=boot_size,
+            bootstrap_ci=bootstrap_ci
+        )
 
-    conf_rp_inf = conf_rp[0,:].squeeze()
-    conf_rp_sup = conf_rp[1,:].squeeze()
+        conf_data_inf = conf_data[0,:].squeeze()
+        conf_data_sup = conf_data[1,:].squeeze()
 
-    ax.fill_between(
-        return_period, conf_data_inf, conf_data_sup, color=color,
-        alpha=0.2,linewidth=1.,zorder=0
-    )
-    ax.semilogx(
-        [return_period, return_period],
-        [conf_data_inf, conf_data_sup],
-        color=color, linewidth=1., zorder=1
-    )
-    ax.semilogx(
-        [conf_rp_inf, conf_rp_sup],
-        [data, data],
-        color=color, linewidth=1., zorder=1
-    )
+        conf_rp_inf = conf_rp[0,:].squeeze()
+        conf_rp_sup = conf_rp[1,:].squeeze()
+
+        ax.fill_between(
+            return_period, conf_data_inf, conf_data_sup, color=color,
+            alpha=0.2,linewidth=1.,zorder=0
+        )
+
+        ax.semilogx(
+            [return_period, return_period],
+            [conf_data_inf, conf_data_sup],
+            color=color, linewidth=1., zorder=1
+        )
+        ax.semilogx(
+            [conf_rp_inf, conf_rp_sup],
+            [data, data],
+            color=color, linewidth=1., zorder=1
+        )
+    else:
+        conf_rp_inf, conf_rp_sup = None, None
 
     return conf_rp_inf, conf_rp_sup
 
@@ -357,7 +365,8 @@ def _rp_calculation(
     data: np.ndarray, 
     fit_function, 
     thresh: float,
-    direction: str = 'descending') -> float:
+    direction: str = 'descending',
+    params: tuple | None = None) -> float:
     """
     Calculates the return period for a given threshold in the dataset.
 
@@ -383,8 +392,8 @@ def _rp_calculation(
     float
         The calculated return period for the given threshold.
     """
-
-    params = fit_function.fit(data)
+    if not params:
+        params = fit_function.fit(data)
 
     if direction == 'descending':
         rp = 1 / fit_function.sf(thresh, *params)

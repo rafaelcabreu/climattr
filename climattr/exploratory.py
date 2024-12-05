@@ -96,7 +96,7 @@ def rp_plot(
     fit_function,
     highlight_year: int | None = 1999,
     direction: str = 'descending',
-    bootstrap_ci: int = 95,
+    bootstrap_ci: int | None = 95,
     boot_size: int = 1000) -> None:
     """
     Plot a return period graph on the given axis with optional highlighting 
@@ -162,13 +162,14 @@ def rp_plot(
         ) 
 
         # add return period estimate for OBS
-        idx = find_nearest(thresh, data_array)
-        ymin, ymax = ax.get_ylim()
-        ax.axvspan(
-            conf_rp_inf[idx], conf_rp_sup[idx], 
-            ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
-            facecolor='silver', edgecolor='C0',
-            linewidth=2., alpha=0.3, zorder=0
-        )
+        if bootstrap_ci:
+            idx = find_nearest(thresh, data_array)
+            ymin, ymax = ax.get_ylim()
+            ax.axvspan(
+                conf_rp_inf[idx], conf_rp_sup[idx], 
+                ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
+                facecolor='silver', edgecolor='C0',
+                linewidth=2., alpha=0.3, zorder=0
+            )
 
 ###############################################################################
