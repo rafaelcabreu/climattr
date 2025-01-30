@@ -10,7 +10,7 @@ authors = [
   {name = "Rafael Abreu", email = "rafael.cesario.abreu@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.9,<3.11"
+requires-python = ">=3.9,<3.12"
 dependencies = [
   "cartopy==0.23.0",
   "dask==2024.8.0",
