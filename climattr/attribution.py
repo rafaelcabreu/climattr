@@ -496,7 +496,7 @@ def attribution_metrics(
 
     # fill dataframe with metrics
     for metric_name in ['PR', 'FAR', 'RP_ALL', 'RP_NAT']:
-        metrics_result.loc[metric_name, 'value'] = np.median(metrics[metric_name])
+        metrics_result.loc[metric_name, 'value'] = np.percentile(metrics[metric_name], 0.5)
         metrics_result.loc[metric_name, 'ci_inf'] = np.percentile(metrics[metric_name], ci_inf)
         metrics_result.loc[metric_name, 'ci_sup'] = np.percentile(metrics[metric_name], ci_sup)
 
@@ -509,7 +509,8 @@ def histogram_plot(
     all: xr.DataArray,
     nat: xr.DataArray,
     fit_function,
-    thresh: float) -> None:
+    thresh: float,
+    **kwargs) -> None:
     """
     Plot histograms of the "ALL" and "NAT" scenarios along with their 
     fitted probability density functions (PDFs).
@@ -545,16 +546,21 @@ def histogram_plot(
     params_all = fit_function.fit(all_array)
     params_nat = fit_function.fit(nat_array)
 
-    ax.hist(all_array, color='C0', alpha=0.5, density=True, label='ALL')
-    ax.hist(nat_array, color='C1', alpha=0.5, density=True, label='NAT')
+    # getting the kwargs
+    all_color = kwargs.get('all_color', 'C1')
+    nat_color = kwargs.get('nat_color', 'C0')
+    alpha = kwargs.get('alpha', 0.5)
+
+    ax.hist(all_array, color=all_color, alpha=alpha, density=True, label='ALL')
+    ax.hist(nat_array, color=nat_color, alpha=alpha, density=True, label='NAT')
 
     # fit the requested distribution and plot it as a line
     percentiles = np.linspace(0.01, 99.9, 700)
     x_all = get_fitted_percentiles(percentiles, params_all, fit_function)
     x_nat = get_fitted_percentiles(percentiles, params_nat, fit_function)
 
-    ax.plot(x_all, fit_function.pdf(x_all, *params_all), color='C0', lw=2)
-    ax.plot(x_nat, fit_function.pdf(x_nat, *params_nat), color='C1', lw=2)
+    ax.plot(x_all, fit_function.pdf(x_all, *params_all), color=all_color, lw=2)
+    ax.plot(x_nat, fit_function.pdf(x_nat, *params_nat), color=nat_color, lw=2)
 
     ax.axvline(thresh, color='k', ls='--')
     ax.legend()
@@ -569,7 +575,8 @@ def rp_plot(
     thresh: float,
     direction: str = 'descending',
     bootstrap_ci: int = 95,
-    boot_size: int = 1000) -> None:
+    boot_size: int = 1000,
+    **kwargs) -> None:
     """
     Plot return periods for the "ALL" and "NAT" scenarios, including 
     confidence intervals (CI) for the bootstrapped return periods.
@@ -621,13 +628,17 @@ def rp_plot(
         nat_array = nat_array[::-1]
 
     conf_rp_inf_all, conf_rp_sup_all = _rp_plot_data(
-        all_array, fit_function, 'C0', 'ALL', ax, direction, bootstrap_ci, boot_size
+        all_array, fit_function, all_color, 'ALL', ax, direction, bootstrap_ci, boot_size
     )
     conf_rp_inf_nat, conf_rp_sup_nat = _rp_plot_data(
-        nat_array, fit_function, 'C1', 'NAT', ax, direction, bootstrap_ci, boot_size
+        nat_array, fit_function, nat_color, 'NAT', ax, direction, bootstrap_ci, boot_size
     )
 
     ax.axhline(thresh, color='k', ls='--')
+
+    # getting the kwargs
+    all_color = kwargs.get('all_color', 'C1')
+    nat_color = kwargs.get('nat_color', 'C0')
 
     # add return period estimate for ALL
     idx = find_nearest(thresh, all_array)
@@ -635,7 +646,7 @@ def rp_plot(
     ax.axvspan(
         conf_rp_inf_all[idx], conf_rp_sup_all[idx], 
         ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
-        facecolor='silver', edgecolor='C0',
+        facecolor='silver', edgecolor=all_color,
         linewidth=2., alpha=0.3, zorder=0
     )
 
@@ -644,7 +655,7 @@ def rp_plot(
     ax.axvspan(
         conf_rp_inf_nat[idx], conf_rp_sup_nat[idx], 
         ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
-        facecolor='silver', edgecolor='C1',
+        facecolor='silver', edgecolor=nat_color,
         linewidth=2., alpha=0.3, zorder=0
     )
 
