@@ -3,6 +3,7 @@ import pandas as pd
 import xarray as xr
 
 from joblib import Parallel, delayed
+from scipy import stats
 from typing import List
 
 from climattr.utils import (
@@ -201,7 +202,7 @@ def _rp_plot_data(
         A list of two arrays containing the lower and upper bounds of the confidence 
         intervals for each sample.
     """
-    params = fit_function.fit(data)
+    params = fit_function.fit(data, loc=data.mean())
 
     return_period = np.array([
         _rp_calculation(data, fit_function, i, direction, params) for i in data]
@@ -215,7 +216,7 @@ def _rp_plot_data(
     )
 
     # plot the fitted line
-    params = fit_function.fit(data)
+    params = fit_function.fit(data, loc=data.mean())
     x = np.linspace(
         fit_function.ppf(0.001, *params), 
         fit_function.ppf(0.991, *params), 
@@ -307,8 +308,8 @@ def _pr_calculation(
     float
         The calculated probability ratio.
     """
-    params_all = fit_function.fit(all_array)
-    params_nat = fit_function.fit(nat_array)
+    params_all = fit_function.fit(all_array, loc=all_array.mean())
+    params_nat = fit_function.fit(nat_array, loc=nat_array.mean())
 
     if direction == 'descending':
         pr = fit_function.sf(thresh, *params_all) \
@@ -394,12 +395,23 @@ def _rp_calculation(
         The calculated return period for the given threshold.
     """
     if not params:
-        params = fit_function.fit(data)
+        params = fit_function.fit(data, loc=data.mean())
+        # print(1, params)
+        # params = fit_function.fit(data)
+        # print(2, params)
 
     if direction == 'descending':
-        rp = 1 / fit_function.sf(thresh, *params)
+        sf = fit_function.sf(thresh, *params)
+        if sf == 0:
+            rp = np.nan
+        else:
+            rp = 1 / sf
     else:
-        rp = 1 / fit_function.cdf(thresh, *params)
+        cdf = fit_function.cdf(thresh, *params)
+        if cdf == 0:
+            rp = np.nan
+        else:
+            rp = 1 / cdf
 
     return rp
 
@@ -497,9 +509,11 @@ def attribution_metrics(
 
         # Fill dataframe with metrics
         for metric_name in ['PR', 'FAR', 'RP_ALL', 'RP_NAT']:
-            metrics_result.loc['value', metric_name] = np.median(metrics[metric_name])
-            metrics_result.loc['ci_inf', metric_name] = np.percentile(metrics[metric_name], ci_inf)
-            metrics_result.loc['ci_sup', metric_name] = np.percentile(metrics[metric_name], ci_sup)
+            metric_without_nan = metrics[metric_name][~np.isnan(metrics[metric_name])]
+
+            metrics_result.loc['value', metric_name] = np.median(metric_without_nan)
+            metrics_result.loc['ci_inf', metric_name] = np.percentile(metric_without_nan, ci_inf)
+            metrics_result.loc['ci_sup', metric_name] = np.percentile(metric_without_nan, ci_sup)
     else:
         metrics_result = pd.DataFrame(metrics)
 
@@ -546,8 +560,8 @@ def histogram_plot(
     all_array = all.to_numpy().flatten()
     nat_array = nat.to_numpy().flatten()
 
-    params_all = fit_function.fit(all_array)
-    params_nat = fit_function.fit(nat_array)
+    params_all = fit_function.fit(all_array, loc=all_array.mean())
+    params_nat = fit_function.fit(nat_array, loc=nat_array.mean())
 
     # getting the kwargs
     all_color = kwargs.get('all_color', 'C1')
