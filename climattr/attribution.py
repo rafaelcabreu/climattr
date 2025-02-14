@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from joblib import Parallel, delayed
 from typing import List
 
 from climattr.utils import (
@@ -411,7 +412,9 @@ def attribution_metrics(
     thresh: float,
     direction: str = 'descending',
     bootstrap_ci: int = 95,
-    boot_size: int = 1000) -> pd.DataFrame:
+    boot_size: int = 1000,
+    summary_statistics: bool = True,
+    n_jobs: int = -1) -> pd.DataFrame:
     """
     Calculate attribution metrics including Probability Ratio (PR), 
     Fraction of Attributable Risk (FAR), and Return Periods (RP) for 
@@ -460,45 +463,45 @@ def attribution_metrics(
     all_boot = _calc_bootstrap_ensemble(all_array, boot_size=boot_size)    
     nat_boot = _calc_bootstrap_ensemble(nat_array, boot_size=boot_size)
 
-    template_array = np.zeros(boot_size)
-    metrics = {
-        'PR': template_array.copy(), 
-        'FAR': template_array.copy(), 
-        'RP_ALL': template_array.copy(), 
-        'RP_NAT': template_array.copy()
-    }
-    for boot in range(int(boot_size)):
-        metrics['PR'][boot] = \
-            _pr_calculation(
-                all_boot[boot], nat_boot[boot], fit_function, thresh, direction
-            )
-        metrics['FAR'][boot] = \
-            _far_calculation(
-                all_boot[boot], nat_boot[boot], fit_function, thresh
-            )
-        metrics['RP_ALL'][boot] = \
-            _rp_calculation(
-                all_boot[boot], fit_function, thresh, direction
-            )
-        metrics['RP_NAT'][boot] = \
-            _rp_calculation(
-                nat_boot[boot], fit_function, thresh, direction
-            )
+    def compute_metrics(boot):
+        """Function to compute PR, FAR, RP_ALL, RP_NAT for a single bootstrap iteration."""
+        return {
+            'PR': _pr_calculation(all_boot[boot], nat_boot[boot], fit_function, thresh, direction),
+            'FAR': _far_calculation(all_boot[boot], nat_boot[boot], fit_function, thresh, direction),
+            'RP_ALL': _rp_calculation(all_boot[boot], fit_function, thresh, direction),
+            'RP_NAT': _rp_calculation(nat_boot[boot], fit_function, thresh, direction)
+        }
 
-    ci_inf, ci_sup = get_percentiles_from_ci(bootstrap_ci)
-
-    # create empty metrics dataframe
-    metrics_result = pd.DataFrame(
-        np.zeros((4, 3)), 
-        columns=['value', 'ci_inf', 'ci_sup'], 
-        index=['PR', 'FAR', 'RP_ALL', 'RP_NAT']
+    # Run computations in parallel
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(compute_metrics)(boot) for boot in range(int(boot_size))
     )
 
-    # fill dataframe with metrics
-    for metric_name in ['PR', 'FAR', 'RP_ALL', 'RP_NAT']:
-        metrics_result.loc[metric_name, 'value'] = np.percentile(metrics[metric_name], 0.5)
-        metrics_result.loc[metric_name, 'ci_inf'] = np.percentile(metrics[metric_name], ci_inf)
-        metrics_result.loc[metric_name, 'ci_sup'] = np.percentile(metrics[metric_name], ci_sup)
+    # Convert results to structured arrays
+    metrics = {
+        'PR': np.array([res['PR'] for res in results]),
+        'FAR': np.array([res['FAR'] for res in results]),
+        'RP_ALL': np.array([res['RP_ALL'] for res in results]),
+        'RP_NAT': np.array([res['RP_NAT'] for res in results])
+    }
+
+    if summary_statistics:
+        ci_inf, ci_sup = get_percentiles_from_ci(bootstrap_ci)
+
+        # Create empty metrics dataframe
+        metrics_result = pd.DataFrame(
+            np.zeros((3, 4)), 
+            index=['value', 'ci_inf', 'ci_sup'], 
+            columns=['PR', 'FAR', 'RP_ALL', 'RP_NAT']
+        )
+
+        # Fill dataframe with metrics
+        for metric_name in ['PR', 'FAR', 'RP_ALL', 'RP_NAT']:
+            metrics_result.loc['value', metric_name] = np.median(metrics[metric_name])
+            metrics_result.loc['ci_inf', metric_name] = np.percentile(metrics[metric_name], ci_inf)
+            metrics_result.loc['ci_sup', metric_name] = np.percentile(metrics[metric_name], ci_sup)
+    else:
+        metrics_result = pd.DataFrame(metrics)
 
     return metrics_result
         
