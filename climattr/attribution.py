@@ -644,6 +644,10 @@ def rp_plot(
         all_array = all_array[::-1]
         nat_array = nat_array[::-1]
 
+    # getting the kwargs
+    all_color = kwargs.get('all_color', 'C1')
+    nat_color = kwargs.get('nat_color', 'C0')
+
     conf_rp_inf_all, conf_rp_sup_all = _rp_plot_data(
         all_array, fit_function, all_color, 'ALL', ax, direction, bootstrap_ci, boot_size
     )
@@ -652,10 +656,6 @@ def rp_plot(
     )
 
     ax.axhline(thresh, color='k', ls='--')
-
-    # getting the kwargs
-    all_color = kwargs.get('all_color', 'C1')
-    nat_color = kwargs.get('nat_color', 'C0')
 
     # add return period estimate for ALL
     idx = find_nearest(thresh, all_array)
