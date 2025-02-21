@@ -331,7 +331,7 @@ def _pr_calculation(
         # just to avoid division by zero
         if probability_nat < epsilon3:
             probability_nat = epsilon3
-            
+
         pr = probability_all / probability_nat
 
     return pr
@@ -658,6 +658,12 @@ def rp_plot(
         all_array = all_array[::-1]
         nat_array = nat_array[::-1]
 
+        all_span_checker = all_array.max() >= thresh
+        nat_span_checker = nat_array.max() >= thresh
+    else:
+        all_span_checker = all_array.min() <= thresh
+        nat_span_checker = nat_array.min() <= thresh
+
     # getting the kwargs
     all_color = kwargs.get('all_color', 'C1')
     nat_color = kwargs.get('nat_color', 'C0')
@@ -673,22 +679,27 @@ def rp_plot(
 
     # add return period estimate for ALL
     idx = find_nearest(thresh, all_array)
+
     ymin, ymax = ax.get_ylim()
-    ax.axvspan(
-        conf_rp_inf_all[idx], conf_rp_sup_all[idx], 
-        ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
-        facecolor='silver', edgecolor=all_color,
-        linewidth=2., alpha=0.3, zorder=0
-    )
+
+    if all_span_checker:
+        ax.axvspan(
+            conf_rp_inf_all[idx], conf_rp_sup_all[idx], 
+            ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
+            facecolor='silver', edgecolor=all_color,
+            linewidth=2., alpha=0.3, zorder=0
+        )
 
     # add return period estimate for NAT
     idx = find_nearest(thresh, nat_array)
-    ax.axvspan(
-        conf_rp_inf_nat[idx], conf_rp_sup_nat[idx], 
-        ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
-        facecolor='silver', edgecolor=nat_color,
-        linewidth=2., alpha=0.3, zorder=0
-    )
+
+    if nat_span_checker:
+        ax.axvspan(
+            conf_rp_inf_nat[idx], conf_rp_sup_nat[idx], 
+            ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
+            facecolor='silver', edgecolor=nat_color,
+            linewidth=2., alpha=0.3, zorder=0
+        )
 
     ax.legend()
 
