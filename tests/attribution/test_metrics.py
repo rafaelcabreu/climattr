@@ -38,10 +38,10 @@ def test_attribution_metrics(sample_data):
 
     # Check if the result is a DataFrame with correct shape
     assert isinstance(result, pd.DataFrame)
-    assert result.shape == (4, 3)
+    assert result.shape == (3, 4)
     
     # Check that the values are correctly filled in the DataFrame
-    assert np.isclose(result.loc['PR', 'value'], 5.954527849810254)
-    assert np.isclose(result.loc['FAR', 'value'], 0.832060412685886)
-    assert np.isclose(result.loc['RP_ALL', 'value'], 1.530539847952145)
-    assert np.isclose(result.loc['RP_NAT', 'value'], 8.98900315155591)
+    assert np.isclose(result.loc['value', 'PR'], 5.954527849810254)
+    assert np.isclose(result.loc['value', 'FAR'], 0.832060412685886)
+    assert np.isclose(result.loc['value', 'RP_ALL'], 1.530539847952145)
+    assert np.isclose(result.loc['value', 'RP_NAT'], 8.98900315155591)
