@@ -202,7 +202,7 @@ def _rp_plot_data(
         A list of two arrays containing the lower and upper bounds of the confidence 
         intervals for each sample.
     """
-    params = fit_function.fit(data, loc=data.mean())
+    params = fit_function.fit(data, loc=data.mean(), scale=data.std())
 
     return_period = np.array([
         _rp_calculation(data, fit_function, i, direction, params) for i in data]
@@ -216,7 +216,7 @@ def _rp_plot_data(
     )
 
     # plot the fitted line
-    params = fit_function.fit(data, loc=data.mean())
+    params = fit_function.fit(data, loc=data.mean(), scale=data.std())
     x = np.linspace(
         fit_function.ppf(0.001, *params), 
         fit_function.ppf(0.991, *params), 
@@ -308,15 +308,31 @@ def _pr_calculation(
     float
         The calculated probability ratio.
     """
-    params_all = fit_function.fit(all_array, loc=all_array.mean())
-    params_nat = fit_function.fit(nat_array, loc=nat_array.mean())
+    # Constant to avoid division by a very small number when probabilities are too small
+    epsilon1 = 0.01
+    epsilon2 = 1e-3
+    epsilon3 = 1e-10
+
+    params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
+    params_nat = fit_function.fit(nat_array, loc=nat_array.mean(), scale=all_array.std())
 
     if direction == 'descending':
-        pr = fit_function.sf(thresh, *params_all) \
-            / fit_function.sf(thresh, *params_nat)
+        probability_all = fit_function.sf(thresh, *params_all)
+        probability_nat = fit_function.sf(thresh, *params_nat)
     else:
-        pr = fit_function.cdf(thresh, *params_all) \
-            / fit_function.cdf(thresh, *params_nat)
+        probability_all = fit_function.cdf(thresh, *params_all)
+        probability_nat = fit_function.cdf(thresh, *params_nat)
+
+    # If both probabilities are too small and the NAT probability is even lower
+    # we will end up with a very high PR value, which is not meaningful
+    if (probability_all < epsilon1) and (probability_nat < epsilon2):
+        pr = np.nan
+    else:
+        # just to avoid division by zero
+        if probability_nat < epsilon3:
+            probability_nat = epsilon3
+            
+        pr = probability_all / probability_nat
 
     return pr
 
@@ -357,9 +373,10 @@ def _far_calculation(
     float
         The calculated Fraction of Attributable Risk (FAR).
     """
-    return 1 - (1 / _pr_calculation(
+    epsilon = 1e-10  # Small constant to avoid division by a very small number    
+    return 1 - (1 / (_pr_calculation(
         all_array, nat_array, fit_function, thresh, direction
-    ))
+    ) + epsilon))
 
 ###############################################################################
 
@@ -395,10 +412,7 @@ def _rp_calculation(
         The calculated return period for the given threshold.
     """
     if not params:
-        params = fit_function.fit(data, loc=data.mean())
-        # print(1, params)
-        # params = fit_function.fit(data)
-        # print(2, params)
+        params = fit_function.fit(data, loc=data.mean(), scale=data.std())
 
     if direction == 'descending':
         sf = fit_function.sf(thresh, *params)
@@ -560,8 +574,8 @@ def histogram_plot(
     all_array = all.to_numpy().flatten()
     nat_array = nat.to_numpy().flatten()
 
-    params_all = fit_function.fit(all_array, loc=all_array.mean())
-    params_nat = fit_function.fit(nat_array, loc=nat_array.mean())
+    params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
+    params_nat = fit_function.fit(nat_array, loc=nat_array.mean(), scale=nat_array.std())
 
     # getting the kwargs
     all_color = kwargs.get('all_color', 'C1')

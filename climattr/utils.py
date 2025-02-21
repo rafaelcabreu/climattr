@@ -1,4 +1,4 @@
-#import iris
+import iris
 import numpy as np
 import re
 import xarray as xr
@@ -10,7 +10,7 @@ from cartopy.io.shapereader import Reader
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime
 from glob import glob
-#import iris.cube
+import iris.cube
 from typing import Union, List
 
 from climattr.validator import validate_ci

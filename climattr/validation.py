@@ -39,8 +39,8 @@ def histogram_plot(
     all_array = all.to_numpy().flatten()
     obs_array = obs.to_numpy().flatten()
 
-    params_all = fit_function.fit(all_array, loc=all_array.mean())
-    params_obs = fit_function.fit(obs_array, loc=obs_array.mean())
+    params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
+    params_obs = fit_function.fit(obs_array, loc=obs_array.mean(), scale=obs_array.std())
 
     # getting the kwargs
     all_color = kwargs.get('all_color', 'C1')
@@ -142,7 +142,7 @@ def qq_plot_theoretical(
     # getting the kwargs
     color = kwargs.get('color', 'C1')
 
-    params = fit_function.fit(data_array, loc=data_array.mean())
+    params = fit_function.fit(data_array, loc=data_array.mean(), scale=data_array.std())
     theor_percentiles = get_fitted_percentiles(percentiles, params, fit_function)
 
     ax.plot(theor_percentiles, data_array, marker='o', ls='', color=color)
