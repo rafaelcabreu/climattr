@@ -3,11 +3,19 @@ import pandas as pd
 from typing import List
 import xarray as xr
 
+import cartopy.crs as ccrs
+from datetime import datetime
 import matplotlib.pyplot as plt
 import scipy.stats
 
 from climattr.attribution import _rp_plot_data
-from climattr.utils import find_nearest
+from climattr.utils import (
+    get_xy_coords,
+    find_nearest, 
+    get_percentiles_from_ci,
+    add_features,
+    calculate_anomalies
+)
 from climattr.validator import (
     validate_ci,
     validate_direction
@@ -88,7 +96,7 @@ def timeseries_plot(
             va='bottom'
         )       
 
-#####################################################################
+###############################################################################
 
 def rp_plot(
     ax,
@@ -171,5 +179,142 @@ def rp_plot(
                 facecolor='silver', edgecolor='C0',
                 linewidth=2., alpha=0.3, zorder=0
             )
+
+###############################################################################
+
+def climatology_timeseries_plot(
+    ax: plt.Axes, 
+    data: xr.DataArray,
+    idate: datetime = '1980-01-01', 
+    edate: datetime = '2010-12-31', 
+    resample: str = 'month', 
+    confidence_interval: int = 95, 
+    years: tuple = (2024,)) -> None:
+    """
+    Plot a climatological time series with confidence intervals and optional 
+    highlighted years.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis on which to plot the climatological time series.
+    
+    data : xr.DataArray
+        The data array containing the time series data to be analyzed.
+    
+    idate : datetime, optional, default = '1980-01-01'
+        The start date for computing the climatology.
+    
+    edate : datetime, optional, default = '2010-12-31'
+        The end date for computing the climatology.
+    
+    resample : str, optional, default = 'month'
+        The resampling frequency for computing the climatology 
+        (e.g., 'day', 'month', 'year').
+
+    confidence_interval : int, optional, default = 95
+        The confidence interval percentage for shading around the 
+        climatological mean.
+
+    years : tuple of int, optional, default = (2024,)
+        The specific years to be highlighted in the plot.
+
+    Returns
+    -------
+    None
+    """
+    dataframe = data.to_dataframe().reset_index().set_index('time')
+
+    ci_inf, ci_sup = get_percentiles_from_ci(confidence_interval)
+
+    dataframe_clim = dataframe[idate:edate].groupby(
+        getattr(dataframe[idate:edate].index, resample)
+    ).mean()
+    
+    # confidence interval
+    dataframe_cinf = dataframe.groupby(
+        getattr(dataframe.index, resample)
+    ).quantile(ci_inf / 100)
+    dataframe_csup = dataframe.groupby(
+        getattr(dataframe.index, resample)
+    ).quantile(ci_sup / 100)
+
+    dataframe_clim[data.name].plot(ax=ax, label='Climatology')
+    ax.fill_between(
+        dataframe_clim.index, 
+        dataframe_cinf[data.name], 
+        dataframe_csup[data.name], 
+        alpha=0.2
+    )
+
+    for year in years:
+        highlight_year = dataframe.loc[f'{year}-01-01':f'{year}-12-31']
+        highlight_year.index = highlight_year.index.map(lambda x: getattr(x, resample))
+        highlight_year[data.name].plot(ax=ax, label=year)
+
+###############################################################################
+
+def anomaly_map_plot(
+    data: xr.DataArray,
+    idate: datetime,
+    edate: datetime,
+    col_wrap=4,
+    **kwargs) -> None:        
+    """
+    Plot anomaly maps for a range of dates that can be either standardized or not.
+
+    Parameters
+    ----------    
+    data : xr.DataArray
+        The data array containing the time series data to be analyzed.
+    
+    idate : datetime, 
+        The start date for plotting the anomalies.
+    
+    edate : datetime, 
+        The end date for plotting the anomalies.
+    
+    col_wrap : str, optional, default = 4
+        Number of plots in each lines. Default is 4
+
+    Returns
+    -------
+    None
+    """    
+    x, y = get_xy_coords(data)
+
+    # extract the keyword arguments
+    cbar_kwargs = kwargs.pop('cbar_kwargs', {'shrink': 0.5})
+    anomaly_kwargs = kwargs.pop(
+        'anomaly_kwargs', 
+        {'idate': '1980-01-01', 'edate': '2010-12-31', 'standardize': False}
+    )
+    cmap = kwargs.pop('cmap', 'RdBu_r')
+
+    # calculate the anomalies
+    data_anomaly = calculate_anomalies(
+        data,
+        idate=anomaly_kwargs['idate'],
+        edate=anomaly_kwargs['edate'],
+        standardize=anomaly_kwargs['standardize']
+    )
+
+    plots = data_anomaly.sel(time=slice(idate, edate)).plot(
+        x=x, y=y, col='time', col_wrap=col_wrap, robust=True, cmap=cmap,
+        subplot_kws={"projection": ccrs.PlateCarree()}, cbar_kwargs=cbar_kwargs
+    )
+
+    # add features to the plots, like states, countries, coastlines, etc.
+    for ax in plots.axs.flat:
+        add_features(
+            ax, 
+            extent=[data[x].min(), data[x].max(), data[y].min(), data[y].max()],
+            labels=False,
+            states_color='k',
+            country_color='k',
+            coastlines_color='k',
+        )
+
+    return None
 
 ###############################################################################
