@@ -1,3 +1,4 @@
+import iris
 import numpy as np
 import pandas as pd
 import re
@@ -11,6 +12,7 @@ from cartopy.io.shapereader import Reader
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime
 from glob import glob
+import iris.cube
 from typing import Union, List
 
 from climattr.validator import validate_ci
@@ -249,12 +251,20 @@ def multiens_netcdf(file_path: str, **kwargs) -> xr.Dataset:
     'r\d+i\d+p\d+f\d+' and that all files corresponding to a single ensemble 
     should be combined.
     """
-    ensemble_pattern = r'r\d+i\d+p\d+f\d+'
     ifiles = glob(file_path)
 
-    ensembles = np.unique([
-        re.search(ensemble_pattern, ifile).group() for ifile in ifiles
-    ])
+    try:
+        ensemble_pattern = r'r\d+i\d+p\d+f\d+'
+        ensembles = np.unique([
+            re.search(ensemble_pattern, ifile).group() for ifile in ifiles
+        ])
+    except AttributeError:
+        ensemble_pattern = r'r\d+i\d+p\d+'
+        ensembles = np.unique([
+            re.search(ensemble_pattern, ifile).group() for ifile in ifiles
+        ])
+    except Exception as e:
+        print(f'Could not find ensemble pattern in the files: {e}')
 
     ds_list = []
     for ensemble in ensembles:
@@ -330,74 +340,146 @@ def reassign_longitude(
 ###############################################################################
 
 def regrid_dataset(
-    dataset: Union[xr.Dataset, xr.DataArray],
-    dataset_grid: Union[None, xr.Dataset, xr.DataArray] = None,
-    lons: Union[None, np.ndarray] = None,
-    lats: Union[None, np.ndarray] = None) -> Union[xr.Dataset, xr.DataArray]:
+    dataarray: xr.DataArray,
+    lons: np.ndarray,
+    lats: np.ndarray,
+    method: str = "AreaWeighted") -> xr.DataArray:
     """
     Regrids a given xarray Dataset or DataArray based on a target grid (either 
     from another dataset or specified lat/lon coordinates).
 
     Parameters
     ----------
-    dataset : Union[xr.Dataset, xr.DataArray]
+    dataset : xr.DataArray
         The dataset or data array to be regridded. It must have x and y 
         coordinates that can be interpolated.
-        
-    dataset_grid : Union[None, xr.Dataset, xr.DataArray], optional
-        An optional dataset or data array that provides the grid onto which the 
-        `dataset` should be interpolated. If provided, the regridding will be 
-        based on the coordinates (x, y) from this dataset.
-        
-    lons : Union[None, np.ndarray], optional
+                
+    lons : np.ndarray
         A NumPy array of longitude values to use as the target grid. This option 
         should be used if `dataset_grid` is not provided.
         
-    lats : Union[None, np.ndarray], optional
+    lats : np.ndarray
         A NumPy array of latitude values to use as the target grid. This option 
         should be used if `dataset_grid` is not provided.
+
+    method : str, optional
+        Method for regriding dataset using iris package, options are: Linear,
+        AreaWeighted, and Nearest. Default is 'AreaWeighted'. The recommended
+        method for precipitation is AreaWeighted which is conservative. 
         
     Returns
     -------
-    Union[xr.Dataset, xr.DataArray]
+    xr.DataArray
         The regridded dataset or data array. The returned object will have the 
         same type as the input `dataset`.
-        
-    Raises
-    ------
-    ValueError
-        Raised if neither a target dataset (`dataset_grid`) nor latitude/longitude 
-        arrays (`lons`, `lats`) are provided.
-        Raised if both a target dataset (`dataset_grid`) and latitude/longitude 
-        arrays (`lons`, `lats`) are provided simultaneously.
         
     Examples
     --------
     Regrid a dataset using lat/lon coordinates:
     
-    >>> regridded = regrid_dataset(dataset, lons=new_lons, lats=new_lats)
-    
-    Regrid a dataset using another dataset's grid:
-    
-    >>> regridded = regrid_dataset(dataset, dataset_grid=target_dataset)
+    >>> regridded = regrid_dataset(dataset, new_lons, new_lats, method='AreaWeighted')
     """
-    # raise error if no option is selected
-    if not dataset_regrided and not lons and not lats:
-        raise ValueError('You should add either a dataset to regrid or lat,lon coordinates')
-    elif dataset_grid and lons and lats:
-        raise ValueError('You should choose either a dataset to regrid or lat,lon coordinates')
+    # create a target grid
+    target_grid = target_grid = iris.cube.Cube(
+        np.zeros((len(lats), len(lons))),
+        dim_coords_and_dims=[
+            (iris.coords.DimCoord(lats, standard_name='latitude', units='degrees'), 0),
+            (iris.coords.DimCoord(lons, standard_name='longitude', units='degrees'), 1)]
+    )
 
-    x, y = get_xy_coords(dataset)
-    x_grid, y_grid = get_xy_coords(dataset_grid)
+    # initialize regridding methods
+    methods = {
+        'Linear': iris.analysis.Linear(),
+        'AreaWeighted': iris.analysis.AreaWeighted(),
+        'Nearest': iris.analysis.Nearest()
+    }
 
-    if dataset_grid:
-        dataset_regrided = xr.interp(
-            **{x: dataset_grid[x_grid], y: dataset_grid[y_grid]}
+    target_grid.coord("latitude").guess_bounds()
+    target_grid.coord("longitude").guess_bounds()
+
+    # convert xarray DataArray to iris cube to regrid data
+    dataarray.attrs.pop('standard_name', None)
+    dataarray_cube = dataarray.to_iris()
+    dataarray_cube.coord("latitude").guess_bounds()
+    dataarray_cube.coord("longitude").guess_bounds()
+
+    # regrid using iris package
+    regridded_cube = dataarray_cube.regrid(target_grid, methods[method])
+    dataarray_regrided = xr.DataArray.from_iris(regridded_cube)
+    dataarray_regrided.name = dataarray.name
+
+    # convert back to xarray object
+    return dataarray_regrided
+
+###############################################################################
+
+def calculate_anomalies(
+    dataarray: xr.DataArray,
+    idate: datetime = '1981-01-01',
+    edate: datetime = '2010-12-31',
+    standardize: bool = False) -> xr.DataArray:
+    """
+    Computes anomalies for a given xarray DataArray based on a specified 
+    reference period.
+
+    Parameters
+    ----------
+    dataarray : xr.DataArray
+        The input dataset containing time-series data with a "time" dimension.
+
+    idate : str, optional
+        The start date of the reference period in the format 'YYYY-MM-DD'. 
+        Default is '1981-01-01'.
+        
+    edate : str, optional
+        The end date of the reference period in the format 'YYYY-MM-DD'. 
+        Default is '2010-12-31'.
+        
+    standardize : bool, optional
+        If True, computes standardized anomalies by dividing the anomaly by the 
+        standard deviation of the reference period. Default is False, which 
+        returns absolute anomalies.
+
+    Returns
+    -------
+    xr.DataArray
+        An array containing the calculated anomalies, where each value 
+        represents the deviation from the monthly climatology of the 
+        reference period.
+
+    Examples
+    --------
+    Compute absolute anomalies based on the 1981-2010 climatology:
+    
+    >>> anomalies = calculate_anomalies(dataarray, idate="1981-01-01", edate="2010-12-31")
+    """
+    dataarray = dataarray.load() # load data into memory
+
+    climatology_mean = dataarray.sel(
+        time=slice(idate, edate)
+    ).groupby("time.month").mean("time")
+
+    # if standardize is true than divide the anomaly by 
+    # the standard deviation
+    if standardize:
+        climatology_std = dataarray.sel(
+            time=slice(idate, edate)
+        ).groupby("time.month").std("time")
+
+        anomalies = xr.apply_ufunc(
+            lambda x, m, s: (x - m) / s,
+            dataarray.groupby("time.month"),
+            climatology_mean,
+            climatology_std,
         )
     else:
-        dataset_regrided = xr.interp(**{x: lons, y: lats})
+        anomalies = xr.apply_ufunc(
+            lambda x, m: (x - m),
+            dataarray.groupby("time.month"),
+            climatology_mean
+        )
 
-    return dataset_regrided
+    return anomalies
 
 ###############################################################################
 

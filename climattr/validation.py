@@ -9,7 +9,8 @@ def histogram_plot(
     ax,
     obs: xr.DataArray,
     all: xr.DataArray,
-    fit_function) -> None:
+    fit_function,
+    **kwargs) -> None:
     """
     Plot histograms for observed and model data, including their probability 
     density functions.
@@ -38,18 +39,22 @@ def histogram_plot(
     all_array = all.to_numpy().flatten()
     obs_array = obs.to_numpy().flatten()
 
-    params_all = fit_function.fit(all_array)
-    params_obs = fit_function.fit(obs_array)
+    params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
+    params_obs = fit_function.fit(obs_array, loc=obs_array.mean(), scale=obs_array.std())
 
-    ax.hist(all_array, color='C0', alpha=0.5, density=True, label='ALL')
-    ax.hist(obs_array, color='k', alpha=0.5, density=True, label='OBS')
+    # getting the kwargs
+    all_color = kwargs.get('all_color', 'C1')
+    obs_color = kwargs.get('obs_color', 'k')
+
+    ax.hist(all_array, color=all_color, alpha=0.5, density=True, label='ALL')
+    ax.hist(obs_array, color=obs_color, alpha=0.5, density=True, label='OBS')
 
     percentiles = np.linspace(0.01, 99.9, 700)
     x_all = get_fitted_percentiles(percentiles, params_all, fit_function)
     x_obs = get_fitted_percentiles(percentiles, params_obs, fit_function)
 
-    ax.plot(x_all, fit_function.pdf(x_all, *params_all), color='C0', lw=2)
-    ax.plot(x_obs, fit_function.pdf(x_obs, *params_obs), color='k', lw=2)
+    ax.plot(x_all, fit_function.pdf(x_all, *params_all), color=all_color, lw=2)
+    ax.plot(x_obs, fit_function.pdf(x_obs, *params_obs), color=obs_color, lw=2)
 
     ax.legend()
 
@@ -58,7 +63,8 @@ def histogram_plot(
 def qq_plot(
     ax,
     obs: xr.DataArray,
-    all: xr.DataArray) -> None:
+    all: xr.DataArray,
+    **kwargs) -> None:
     """
     Generate a quantile-quantile plot to compare quantiles of observed data 
     against model data.
@@ -87,7 +93,10 @@ def qq_plot(
     all_percentiles = np.percentile(all_array, percentiles)
     obs_percentiles = np.percentile(obs_array, percentiles)
 
-    ax.plot(obs_percentiles, all_percentiles, marker='o', ls='')
+    # getting the kwargs
+    color = kwargs.get('color', 'C1')
+
+    ax.plot(obs_percentiles, all_percentiles, marker='o', ls='', color=color)
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()
@@ -104,7 +113,8 @@ def qq_plot(
 def qq_plot_theoretical(
     ax,
     data: xr.DataArray,
-    fit_function) -> None:
+    fit_function,
+    **kwargs) -> None:
     """
     Generate a theoretical quantile-quantile plot to compare data quantiles against 
     a fitted theoretical distribution.
@@ -129,10 +139,13 @@ def qq_plot_theoretical(
         data_array
     )
 
-    params = fit_function.fit(data_array)
+    # getting the kwargs
+    color = kwargs.get('color', 'C1')
+
+    params = fit_function.fit(data_array, loc=data_array.mean(), scale=data_array.std())
     theor_percentiles = get_fitted_percentiles(percentiles, params, fit_function)
 
-    ax.plot(theor_percentiles, data_array, marker='o', ls='')
+    ax.plot(theor_percentiles, data_array, marker='o', ls='', color=color)
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()

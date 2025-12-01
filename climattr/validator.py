@@ -25,8 +25,8 @@ def validate_ci(value):
     This function ensures that the confidence interval used in statistical analyses
     is expressed as a valid percentage.
     """
-    if not (isinstance(value, int) and 0 < value <= 100):
-        raise ValueError("ci must be an integer between 1 and 100.")
+    if not (value is None or (isinstance(value, int) and 0 < value < 100)):
+        raise ValueError("ci must be an integer between 0 and 100 or None.")
 
 ###############################################################################
 

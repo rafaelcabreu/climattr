@@ -51,8 +51,8 @@ To install ClimAttr, you can install directly from GitHub using pip:
 Alternatively, you can install directly from GitHub using pip:
 
 ```bash
-
-pip  install  git+https://github.com/rafaelcabreu/climattr.git
+pip  install  git+https://github.com/rafaelcabreu/climattr@master
+```
 
 ```
 
