@@ -20,6 +20,8 @@ def sample_data():
     nat_data = xr.DataArray(nat_array, coords={"time": time}, dims="time")
     return all_data, nat_data
 
+###############################################################################
+
 def test_attribution_metrics(sample_data):
     """Test attribution_metrics function."""
     all_data, nat_data = sample_data
@@ -45,3 +47,5 @@ def test_attribution_metrics(sample_data):
     assert np.isclose(result.loc['value', 'FAR'], 0.832060412685886)
     assert np.isclose(result.loc['value', 'RP_ALL'], 1.530539847952145)
     assert np.isclose(result.loc['value', 'RP_NAT'], 8.98900315155591)
+
+  ###############################################################################
