@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from joblib import Parallel, delayed
+from scipy import stats
 from typing import List
 
 from climattr.utils import (
@@ -200,7 +202,7 @@ def _rp_plot_data(
         A list of two arrays containing the lower and upper bounds of the confidence 
         intervals for each sample.
     """
-    params = fit_function.fit(data)
+    params = fit_function.fit(data, loc=data.mean(), scale=data.std())
 
     return_period = np.array([
         _rp_calculation(data, fit_function, i, direction, params) for i in data]
@@ -214,7 +216,7 @@ def _rp_plot_data(
     )
 
     # plot the fitted line
-    params = fit_function.fit(data)
+    params = fit_function.fit(data, loc=data.mean(), scale=data.std())
     x = np.linspace(
         fit_function.ppf(0.001, *params), 
         fit_function.ppf(0.991, *params), 
@@ -306,15 +308,31 @@ def _pr_calculation(
     float
         The calculated probability ratio.
     """
-    params_all = fit_function.fit(all_array)
-    params_nat = fit_function.fit(nat_array)
+    # Constant to avoid division by a very small number when probabilities are too small
+    epsilon1 = 0.01
+    epsilon2 = 1e-3
+    epsilon3 = 1e-10
+
+    params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
+    params_nat = fit_function.fit(nat_array, loc=nat_array.mean(), scale=all_array.std())
 
     if direction == 'descending':
-        pr = fit_function.sf(thresh, *params_all) \
-            / fit_function.sf(thresh, *params_nat)
+        probability_all = fit_function.sf(thresh, *params_all)
+        probability_nat = fit_function.sf(thresh, *params_nat)
     else:
-        pr = fit_function.cdf(thresh, *params_all) \
-            / fit_function.cdf(thresh, *params_nat)
+        probability_all = fit_function.cdf(thresh, *params_all)
+        probability_nat = fit_function.cdf(thresh, *params_nat)
+
+    # If both probabilities are too small and the NAT probability is even lower
+    # we will end up with a very high PR value, which is not meaningful
+    if (probability_all < epsilon1) and (probability_nat < epsilon2):
+        pr = np.nan
+    else:
+        # just to avoid division by zero
+        if probability_nat < epsilon3:
+            probability_nat = epsilon3
+
+        pr = probability_all / probability_nat
 
     return pr
 
@@ -355,9 +373,10 @@ def _far_calculation(
     float
         The calculated Fraction of Attributable Risk (FAR).
     """
-    return 1 - (1 / _pr_calculation(
+    epsilon = 1e-10  # Small constant to avoid division by a very small number    
+    return 1 - (1 / (_pr_calculation(
         all_array, nat_array, fit_function, thresh, direction
-    ))
+    ) + epsilon))
 
 ###############################################################################
 
@@ -393,12 +412,20 @@ def _rp_calculation(
         The calculated return period for the given threshold.
     """
     if not params:
-        params = fit_function.fit(data)
+        params = fit_function.fit(data, loc=data.mean(), scale=data.std())
 
     if direction == 'descending':
-        rp = 1 / fit_function.sf(thresh, *params)
+        sf = fit_function.sf(thresh, *params)
+        if sf == 0:
+            rp = np.nan
+        else:
+            rp = 1 / sf
     else:
-        rp = 1 / fit_function.cdf(thresh, *params)
+        cdf = fit_function.cdf(thresh, *params)
+        if cdf == 0:
+            rp = np.nan
+        else:
+            rp = 1 / cdf
 
     return rp
 
@@ -411,7 +438,9 @@ def attribution_metrics(
     thresh: float,
     direction: str = 'descending',
     bootstrap_ci: int = 95,
-    boot_size: int = 1000) -> pd.DataFrame:
+    boot_size: int = 1000,
+    summary_statistics: bool = True,
+    n_jobs: int = -1) -> pd.DataFrame:
     """
     Calculate attribution metrics including Probability Ratio (PR), 
     Fraction of Attributable Risk (FAR), and Return Periods (RP) for 
@@ -460,45 +489,47 @@ def attribution_metrics(
     all_boot = _calc_bootstrap_ensemble(all_array, boot_size=boot_size)    
     nat_boot = _calc_bootstrap_ensemble(nat_array, boot_size=boot_size)
 
-    template_array = np.zeros(boot_size)
-    metrics = {
-        'PR': template_array.copy(), 
-        'FAR': template_array.copy(), 
-        'RP_ALL': template_array.copy(), 
-        'RP_NAT': template_array.copy()
-    }
-    for boot in range(int(boot_size)):
-        metrics['PR'][boot] = \
-            _pr_calculation(
-                all_boot[boot], nat_boot[boot], fit_function, thresh, direction
-            )
-        metrics['FAR'][boot] = \
-            _far_calculation(
-                all_boot[boot], nat_boot[boot], fit_function, thresh
-            )
-        metrics['RP_ALL'][boot] = \
-            _rp_calculation(
-                all_boot[boot], fit_function, thresh, direction
-            )
-        metrics['RP_NAT'][boot] = \
-            _rp_calculation(
-                nat_boot[boot], fit_function, thresh, direction
-            )
+    def compute_metrics(boot):
+        """Function to compute PR, FAR, RP_ALL, RP_NAT for a single bootstrap iteration."""
+        return {
+            'PR': _pr_calculation(all_boot[boot], nat_boot[boot], fit_function, thresh, direction),
+            'FAR': _far_calculation(all_boot[boot], nat_boot[boot], fit_function, thresh, direction),
+            'RP_ALL': _rp_calculation(all_boot[boot], fit_function, thresh, direction),
+            'RP_NAT': _rp_calculation(nat_boot[boot], fit_function, thresh, direction)
+        }
 
-    ci_inf, ci_sup = get_percentiles_from_ci(bootstrap_ci)
-
-    # create empty metrics dataframe
-    metrics_result = pd.DataFrame(
-        np.zeros((4, 3)), 
-        columns=['value', 'ci_inf', 'ci_sup'], 
-        index=['PR', 'FAR', 'RP_ALL', 'RP_NAT']
+    # Run computations in parallel
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(compute_metrics)(boot) for boot in range(int(boot_size))
     )
 
-    # fill dataframe with metrics
-    for metric_name in ['PR', 'FAR', 'RP_ALL', 'RP_NAT']:
-        metrics_result.loc[metric_name, 'value'] = np.median(metrics[metric_name])
-        metrics_result.loc[metric_name, 'ci_inf'] = np.percentile(metrics[metric_name], ci_inf)
-        metrics_result.loc[metric_name, 'ci_sup'] = np.percentile(metrics[metric_name], ci_sup)
+    # Convert results to structured arrays
+    metrics = {
+        'PR': np.array([res['PR'] for res in results]),
+        'FAR': np.array([res['FAR'] for res in results]),
+        'RP_ALL': np.array([res['RP_ALL'] for res in results]),
+        'RP_NAT': np.array([res['RP_NAT'] for res in results])
+    }
+
+    if summary_statistics:
+        ci_inf, ci_sup = get_percentiles_from_ci(bootstrap_ci)
+
+        # Create empty metrics dataframe
+        metrics_result = pd.DataFrame(
+            np.zeros((3, 4)), 
+            index=['value', 'ci_inf', 'ci_sup'], 
+            columns=['PR', 'FAR', 'RP_ALL', 'RP_NAT']
+        )
+
+        # Fill dataframe with metrics
+        for metric_name in ['PR', 'FAR', 'RP_ALL', 'RP_NAT']:
+            metric_without_nan = metrics[metric_name][~np.isnan(metrics[metric_name])]
+
+            metrics_result.loc['value', metric_name] = np.median(metric_without_nan)
+            metrics_result.loc['ci_inf', metric_name] = np.percentile(metric_without_nan, ci_inf)
+            metrics_result.loc['ci_sup', metric_name] = np.percentile(metric_without_nan, ci_sup)
+    else:
+        metrics_result = pd.DataFrame(metrics)
 
     return metrics_result
         
@@ -509,7 +540,8 @@ def histogram_plot(
     all: xr.DataArray,
     nat: xr.DataArray,
     fit_function,
-    thresh: float) -> None:
+    thresh: float,
+    **kwargs) -> None:
     """
     Plot histograms of the "ALL" and "NAT" scenarios along with their 
     fitted probability density functions (PDFs).
@@ -542,19 +574,24 @@ def histogram_plot(
     all_array = all.to_numpy().flatten()
     nat_array = nat.to_numpy().flatten()
 
-    params_all = fit_function.fit(all_array)
-    params_nat = fit_function.fit(nat_array)
+    params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
+    params_nat = fit_function.fit(nat_array, loc=nat_array.mean(), scale=nat_array.std())
 
-    ax.hist(all_array, color='C0', alpha=0.5, density=True, label='ALL')
-    ax.hist(nat_array, color='C1', alpha=0.5, density=True, label='NAT')
+    # getting the kwargs
+    all_color = kwargs.get('all_color', 'C1')
+    nat_color = kwargs.get('nat_color', 'C0')
+    alpha = kwargs.get('alpha', 0.5)
+
+    ax.hist(all_array, color=all_color, alpha=alpha, density=True, label='ALL')
+    ax.hist(nat_array, color=nat_color, alpha=alpha, density=True, label='NAT')
 
     # fit the requested distribution and plot it as a line
     percentiles = np.linspace(0.01, 99.9, 700)
     x_all = get_fitted_percentiles(percentiles, params_all, fit_function)
     x_nat = get_fitted_percentiles(percentiles, params_nat, fit_function)
 
-    ax.plot(x_all, fit_function.pdf(x_all, *params_all), color='C0', lw=2)
-    ax.plot(x_nat, fit_function.pdf(x_nat, *params_nat), color='C1', lw=2)
+    ax.plot(x_all, fit_function.pdf(x_all, *params_all), color=all_color, lw=2)
+    ax.plot(x_nat, fit_function.pdf(x_nat, *params_nat), color=nat_color, lw=2)
 
     ax.axvline(thresh, color='k', ls='--')
     ax.legend()
@@ -569,7 +606,8 @@ def rp_plot(
     thresh: float,
     direction: str = 'descending',
     bootstrap_ci: int = 95,
-    boot_size: int = 1000) -> None:
+    boot_size: int = 1000,
+    **kwargs) -> None:
     """
     Plot return periods for the "ALL" and "NAT" scenarios, including 
     confidence intervals (CI) for the bootstrapped return periods.
@@ -620,33 +658,48 @@ def rp_plot(
         all_array = all_array[::-1]
         nat_array = nat_array[::-1]
 
+        all_span_checker = all_array.max() >= thresh
+        nat_span_checker = nat_array.max() >= thresh
+    else:
+        all_span_checker = all_array.min() <= thresh
+        nat_span_checker = nat_array.min() <= thresh
+
+    # getting the kwargs
+    all_color = kwargs.get('all_color', 'C1')
+    nat_color = kwargs.get('nat_color', 'C0')
+
     conf_rp_inf_all, conf_rp_sup_all = _rp_plot_data(
-        all_array, fit_function, 'C0', 'ALL', ax, direction, bootstrap_ci, boot_size
+        all_array, fit_function, all_color, 'ALL', ax, direction, bootstrap_ci, boot_size
     )
     conf_rp_inf_nat, conf_rp_sup_nat = _rp_plot_data(
-        nat_array, fit_function, 'C1', 'NAT', ax, direction, bootstrap_ci, boot_size
+        nat_array, fit_function, nat_color, 'NAT', ax, direction, bootstrap_ci, boot_size
     )
 
     ax.axhline(thresh, color='k', ls='--')
 
     # add return period estimate for ALL
     idx = find_nearest(thresh, all_array)
+
     ymin, ymax = ax.get_ylim()
-    ax.axvspan(
-        conf_rp_inf_all[idx], conf_rp_sup_all[idx], 
-        ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
-        facecolor='silver', edgecolor='C0',
-        linewidth=2., alpha=0.3, zorder=0
-    )
+
+    if all_span_checker:
+        ax.axvspan(
+            conf_rp_inf_all[idx], conf_rp_sup_all[idx], 
+            ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
+            facecolor='silver', edgecolor=all_color,
+            linewidth=2., alpha=0.3, zorder=0
+        )
 
     # add return period estimate for NAT
     idx = find_nearest(thresh, nat_array)
-    ax.axvspan(
-        conf_rp_inf_nat[idx], conf_rp_sup_nat[idx], 
-        ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
-        facecolor='silver', edgecolor='C1',
-        linewidth=2., alpha=0.3, zorder=0
-    )
+
+    if nat_span_checker:
+        ax.axvspan(
+            conf_rp_inf_nat[idx], conf_rp_sup_nat[idx], 
+            ymin=0, ymax=(thresh - ymin)/ (ymax - ymin),
+            facecolor='silver', edgecolor=nat_color,
+            linewidth=2., alpha=0.3, zorder=0
+        )
 
     ax.legend()
 
