@@ -34,7 +34,7 @@ dependencies = [
 climattr = "climattr.cli.main:main"
 
 [tool.setuptools]
-packages = ["climattr"]
+packages = ["climattr", "climattr.cli", "climattr.minimization"]
 
 [tool.setuptools.package-dir]
 climattr = "climattr"
