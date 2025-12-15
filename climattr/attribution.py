@@ -15,8 +15,7 @@ from climattr.minimization.fit import (
 from climattr.utils import (
     find_nearest,
     get_percentiles_from_ci,
-    get_fitted_percentiles,
-    get_global_temperature_anomaly
+    get_fitted_percentiles
 )
 from climattr.validator import (
     validate_direction, 
