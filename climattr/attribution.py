@@ -25,7 +25,8 @@ from climattr.validator import (
 def _calc_bootstrap_ensemble(
     data: np.ndarray, 
     direction: str = "ascending", 
-    boot_size: int = 1000) -> np.ndarray:
+    boot_size: int = 1000,
+    seed: int = 42) -> np.ndarray:
     """
     Generates bootstrap ensembles from the input data and sorts them in the 
     specified direction.
@@ -70,6 +71,8 @@ def _calc_bootstrap_ensemble(
            [4.7, 3.2, 2.8, 1.5]])
 
     """
+    np.random.seed(seed)
+
     # Flatten the input data
     n_samples = data.shape[0]
     
@@ -164,7 +167,8 @@ def _rp_plot_data(
     ax,
     direction: str = 'descending',
     bootstrap_ci: int | None = 95,
-    boot_size: int = 1000) -> List[np.ndarray]:
+    boot_size: int = 1000,
+    params: tuple | None = None) -> List[np.ndarray]:
     """
     Plots return period data along with its confidence intervals on a given axis.
 
@@ -208,7 +212,8 @@ def _rp_plot_data(
         A list of two arrays containing the lower and upper bounds of the confidence 
         intervals for each sample.
     """
-    params = fit_function.fit(data, loc=data.mean(), scale=data.std())
+    if not params:
+        params = fit_function.fit(data, loc=data.mean(), scale=data.std())
 
     return_period = np.array([
         _rp_calculation(data, fit_function, i, direction, params) for i in data]
@@ -221,8 +226,6 @@ def _rp_plot_data(
         label=label, zorder=2
     )
 
-    # plot the fitted line
-    params = fit_function.fit(data, loc=data.mean(), scale=data.std())
     x = np.linspace(
         fit_function.ppf(0.001, *params), 
         fit_function.ppf(0.991, *params), 
@@ -257,21 +260,21 @@ def _rp_plot_data(
         conf_rp_inf = conf_rp[0,:].squeeze()
         conf_rp_sup = conf_rp[1,:].squeeze()
 
-        ax.fill_between(
-            return_period, conf_data_inf, conf_data_sup, color=color,
-            alpha=0.2,linewidth=1.,zorder=0
-        )
+        # ax.fill_between(
+        #     return_period, conf_data_inf, conf_data_sup, color=color,
+        #     alpha=0.2,linewidth=1.,zorder=0
+        # )
 
-        ax.semilogx(
-            [return_period, return_period],
-            [conf_data_inf, conf_data_sup],
-            color=color, linewidth=1., zorder=1
-        )
-        ax.semilogx(
-            [conf_rp_inf, conf_rp_sup],
-            [data, data],
-            color=color, linewidth=1., zorder=1
-        )
+        # ax.semilogx(
+        #     [return_period, return_period],
+        #     [conf_data_inf, conf_data_sup],
+        #     color=color, linewidth=1., zorder=1
+        # )
+        # ax.semilogx(
+        #     [conf_rp_inf, conf_rp_sup],
+        #     [data, data],
+        #     color=color, linewidth=1., zorder=1
+        # )
     else:
         conf_rp_inf, conf_rp_sup = None, None
 
@@ -284,7 +287,9 @@ def _pr_calculation(
     nat_array: np.ndarray, 
     fit_function, 
     thresh: int,
-    direction: str = 'descending') -> float:
+    direction: str = 'descending',
+    params_all: tuple | None = None,
+    params_nat: tuple | None = None) -> float:
     """
     Calculates the probability ratio (PR) between two datasets.
 
@@ -315,12 +320,16 @@ def _pr_calculation(
         The calculated probability ratio.
     """
     # Constant to avoid division by a very small number when probabilities are too small
-    epsilon1 = 0.01
-    epsilon2 = 1e-3
-    epsilon3 = 1e-10
+    # epsilon1 = 0.01
+    # epsilon2 = 1e-3
+    # epsilon3 = 1e-10
 
-    params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
-    params_nat = fit_function.fit(nat_array, loc=nat_array.mean(), scale=all_array.std())
+    # if parameters are not specific then we fit the data to the distribution and get the parameters
+    if not params_all:
+        params_all = fit_function.fit(all_array, loc=all_array.mean(), scale=all_array.std())
+        
+    if not params_nat:
+        params_nat = fit_function.fit(nat_array, loc=nat_array.mean(), scale=all_array.std())
 
     if direction == 'descending':
         probability_all = fit_function.sf(thresh, *params_all)
@@ -329,16 +338,16 @@ def _pr_calculation(
         probability_all = fit_function.cdf(thresh, *params_all)
         probability_nat = fit_function.cdf(thresh, *params_nat)
 
-    # If both probabilities are too small and the NAT probability is even lower
-    # we will end up with a very high PR value, which is not meaningful
-    if (probability_all < epsilon1) and (probability_nat < epsilon2):
-        pr = np.nan
-    else:
-        # just to avoid division by zero
-        if probability_nat < epsilon3:
-            probability_nat = epsilon3
+    # # If both probabilities are too small and the NAT probability is even lower
+    # # we will end up with a very high PR value, which is not meaningful
+    # if (probability_all < epsilon1) and (probability_nat < epsilon2):
+    #     pr = np.nan
+    # else:
+    #     # just to avoid division by zero
+    #     if probability_nat < epsilon3:
+    #         probability_nat = epsilon3
 
-        pr = probability_all / probability_nat
+    pr = probability_all / probability_nat
 
     return pr
 
@@ -349,7 +358,9 @@ def _far_calculation(
     nat_array: np.ndarray, 
     fit_function, 
     thresh: float,
-    direction: str = 'descending') -> float:
+    direction: str = 'descending',
+    params_all: tuple | None = None,
+    params_nat: tuple | None = None) -> float:
     """
     Calculates the Fraction of Attributable Risk (FAR) between two datasets.
 
@@ -381,7 +392,7 @@ def _far_calculation(
     """
     epsilon = 1e-10  # Small constant to avoid division by a very small number    
     return 1 - (1 / (_pr_calculation(
-        all_array, nat_array, fit_function, thresh, direction
+        all_array, nat_array, fit_function, thresh, direction, params_all, params_nat
     ) + epsilon))
 
 ###############################################################################
@@ -708,77 +719,5 @@ def rp_plot(
         )
 
     ax.legend()
-
-############################################################################### 
-    
-def fit_wwa_data(
-    all: xr.DataArray, 
-    global_tas: pd.DataFrame,
-    fit_function_name: str,
-    all_date: Union[datetime, str] = '2015-11-30',
-    nat_date: Union[datetime, str] = '1900-11-30',
-    strategy: str = 'linear',
-    verbose: bool = True) -> Tuple[xr.DataArray, xr.DataArray]:
-    """
-    World Weather Attribution method to select the natural scenario based on 
-    the relation between the global mean temperature and variable of interest by
-    fitting a statistical model to climate data and extrapolates future data 
-    for specific dates using MLE.
-
-    Link for the method paper: https://ascmo.copernicus.org/articles/6/177/2020/
-
-    Parameters:
-    -----------
-    all : xr.DataArray
-        Climate data represented as an xarray DataArray, which will be fitted and 
-        used for extrapolation.
-    global_tas : pd.DataFrame
-        A DataFrame containing global temperature anomalies (tas) with a datetime 
-        index.
-    fit_function_name : str
-        The name of the distribution to use for fitting the data ('genextreme', 
-        'norm', 'gamma').
-    all_date : Union[str, datetime], optional
-        The date for which to extrapolate 'all' data (default is '2015-11-30').
-    nat_date : Union[str, datetime], optional
-        The date for which to extrapolate 'nat' data (default is '1900-11-30').
-    strategy : str, optional
-        The strategy to use ('linear' or 'exponential') for calculating the 
-        estimated parameters (default is 'linear').
-
-    Returns:
-    --------
-    Tuple[xr.DataArray, xr.DataArray]
-        Two xarray DataArray objects:
-        - The extrapolated 'all' climate data for the specified `all_date`.
-        - The extrapolated 'natural' climate data for the specified `nat_date`.
-
-    Notes:
-    ------
-    This function fits the provided climate data (`all`) to a statistical model 
-    using maximum likelihood estimation (MLE).
-    It then extrapolates data for the specified dates (`all_date` and `nat_date`) 
-    based on the fitted parameters and global temperature anomalies (`global_tas`).
-    The `tas` values in the `global_tas` DataFrame are smoothed using a 4-point 
-    rolling mean.
-    """
-    all_dataframe = all.to_dataframe().reset_index()
-
-    global_tas['tas'] = global_tas['tas'].rolling(4, center=True).mean()
-    dataframe = all_dataframe.set_index('time').join(global_tas).dropna()
-
-    # fit function using MLE
-    params = fit_data(
-        dataframe[all.name], dataframe['tas'], fit_function_name, strategy, verbose=verbose
-    )
-
-    # extrapolate data to the selected dates
-    nat_wwa = extrapolate_data(global_tas, params, nat_date, fit_function_name, strategy)
-    all_wwa = extrapolate_data(global_tas, params, all_date, fit_function_name, strategy)
-
-    all_wwa = xr.DataArray(all_wwa, name=all.name)
-    nat_wwa = xr.DataArray(nat_wwa, name=all.name)
-
-    return params, all_wwa, nat_wwa
 
 ############################################################################### 

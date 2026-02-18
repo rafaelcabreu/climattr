@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -63,12 +65,14 @@ def fit_data(
     model = fit_functions[fit_function_name](x, global_tas, strategy=strategy)
 
     # Fit the model
-    result = model.fit()
-
-    # Print the summary of results if verbose = True
     if verbose:
+        result = model.fit(disp=True)
         print(result.summary())
-    
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = model.fit(disp=False)
+
     return result.params
 
 ###############################################################################
@@ -108,11 +112,11 @@ def extrapolate_data(
     """
     if strategy == 'linear':
         mu, sigma = linear_function(
-            params[0], params[1], params[3], global_tas.loc[date]
+            params[0], params[1], params[3], global_tas.loc[date, 'tas']
         )
     else:
         mu, sigma = exponential_function(
-            params[0], params[1], params[3], global_tas.loc[date]
+            params[0], params[1], params[3], global_tas.loc[date, 'tas']
         )
     
     function_params = {
@@ -126,6 +130,83 @@ def extrapolate_data(
         stats, fit_function_name
     ).rvs(*function_params[fit_function_name], size=size)   
 
-    return extrapolated_data
+    return function_params[fit_function_name], extrapolated_data
+
+###############################################################################
+
+def aic(log_likelihood: float, k: int) -> float:
+    """
+    Calculate the Akaike Information Criterion (AIC).
+
+    Parameters
+    ----------
+    log_likelihood : float
+        The maximized log-likelihood of the fitted model.
+    k : int
+        The number of estimated parameters in the model.
+
+    Returns
+    -------
+    float
+        The AIC value. Lower values indicate a better trade-off
+        between goodness-of-fit and model complexity.
+    """
+    return 2 * k - 2 * log_likelihood
+
+###############################################################################
+
+def bic(log_likelihood: float, k: int, n: int) -> float:
+    """
+    Calculate the Bayesian Information Criterion (BIC).
+
+    Parameters
+    ----------
+    log_likelihood : float
+        The maximized log-likelihood of the fitted model.
+    k : int
+        The number of estimated parameters in the model.
+    n : int
+        The number of observations in the dataset.
+
+    Returns
+    -------
+    float
+        The BIC value. Lower values indicate a better trade-off
+        between goodness-of-fit and model complexity, with a stronger
+        penalty for complexity than AIC.
+    """
+    return k * np.log(n) - 2 * log_likelihood
+
+###############################################################################
+
+def rsquared(result) -> float:
+    """
+    Calculate the R² (coefficient of determination) from a fitted WWA model.
+
+    Computes R² as the proportion of variance in the observed data
+    explained by the covariate-dependent mean (mu) of the fitted model.
+
+    Parameters
+    ----------
+    result : statsmodels GenericLikelihoodModelResults
+        The result object returned by model.fit().
+
+    Returns
+    -------
+    float
+        The R² value between 0 and 1, where 1 indicates a perfect fit.
+    """
+    from climattr.minimization.utils import choose_strategy
+
+    mu_0, sigma_0, _, alpha = result.params
+    model = result.model
+    global_tas = model.exog[:, 0]
+
+    mu_fitted, _ = choose_strategy(model.strategy, mu_0, sigma_0, alpha, global_tas)
+
+    ss_res = np.sum((model.endog - mu_fitted) ** 2)
+    ss_tot = np.sum((model.endog - np.mean(model.endog)) ** 2)
+
+    return 1 - ss_res / ss_tot
 
 ###############################################################################

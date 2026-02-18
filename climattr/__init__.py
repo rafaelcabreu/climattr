@@ -1,4 +1,5 @@
 from climattr import attribution
+from climattr import attribution_wwa
 from climattr import correction
 from climattr import exploratory
 from climattr import filter
